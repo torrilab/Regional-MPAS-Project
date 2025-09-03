@@ -1,0 +1,366 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 LucidaGrande;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww25100\viewh26880\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 #*#*#*#*# ********* ALSO NEED TO UPDATE DIRECTORIES *************\
+\
+\
+********** UPDATES TO CLASSES_! *****************\
+\
+*************** 1 ***************\
+\
+\
+#PLOTTING FUNCTIONS\
+\
+#1. (T,Z) Contour Plot\
+class Plotting:\
+    def __init__(self):\
+        pass\
+\
+    #1. (T,Z) Contour Plot\
+    def TZContourPlot(self, var_data, var_name, var_units, date_string, date_folder, outputFile, colormap):\
+        #setting up labels\
+        pc = np.linspace(1000,1,var_data.shape[1])     # vertical levels\
+        times = np.arange(0, var_data.shape[0]*3, 3)  # [0,3,6,9,...]\
+        labels = [f"\{t\}-\{t+3-1\} h" for t in times]\
+    \
+        #setting up plot figure\
+        fig = plt.figure(figsize=(10,4))\
+        gs = gridspec.GridSpec(1, 1, figure=fig)\
+    \
+        #plotting\
+        ax = fig.add_subplot(gs[0, 0])\
+        cf = ax.contourf(times, pc, var_data.T, cmap=colormap)\
+        cbar = fig.colorbar(cf, ax=ax)\
+        cbar.set_label(f"\{var_name\} \{var_units\}")\
+    \
+        #inverting yaxis\
+        ax.set_ylim(1000, 1) \
+    \
+        #labels\
+        ax.set_xlabel('Time (hrs)')\
+        ax.set_ylabel('p ' + r'$(hrs)$')\
+        # ax.set_ylabel(f"\{var_name\} \{var_units\}")\
+        ax.set_title(f"TZ Contour of \{var_name\} \{var_units\} \\nERA5 Data on \{date_string\}")\
+\
+        #saving plot\
+        fig.savefig(os.path.join(outputFile, f"\{var_name\}_TZContour_\{date_folder\}.jpg"))\
+        plt.close(fig)   # ensures it won\'92t show up in Jupyter\
+        \
+\
+    #2. TIME SERIES    \
+    def TimeSeries(self,numerics, var_data, var_name, var_units, date_string, date_folder, outputFile):\
+        #setting up plot figure\
+        fig = plt.figure(figsize=(10,4))\
+        gs = gridspec.GridSpec(1, 1, figure=fig)\
+    \
+        #plotting\
+        ax = fig.add_subplot(gs[0, 0])\
+        x_data=numerics.time/3600\
+        ax.plot(x_data, var_data, lw=1.5)\
+\
+        #fix axises\
+        #yticks\
+        ymin = np.floor(np.min(var_data))\
+        ymax = np.ceil(np.max(var_data))\
+        ax.set_ylim(ymin, ymax)\
+        yticks = np.arange(ymin, ymax + 1, 1)\
+        ax.set_yticks(yticks)\
+\
+        #xticks\
+        xmin = np.floor(np.min(x_data))\
+        xmax = np.ceil(np.max(x_data)+1)\
+        ax.set_xlim(xmin, xmax)\
+        xticks = np.arange(xmin, xmax + 1, 1)\
+        ax.set_xticks(xticks)\
+\
+        #labels\
+        ax.set_xlabel('Time (hrs)')\
+        ax.set_ylabel(f"\{var_name\} \{var_units\}")\
+        ax.set_title(f"Time-series of \{var_name\} \{var_units\} \\nERA5 Data on \{date_string\}")\
+    \
+        # Set xticks every 3 hours\
+        max_hours = numerics.time[-1]/3600\
+        ax.set_xticks(np.arange(0, max_hours+1, 3))\
+    \
+        #vertical lines\
+        ndays=3; vline_xinds = np.insert(np.arange(24, 24*ndays+1, 24) - 1, 0, 0) # e.g. every 24 hrs\
+        for x in vline_xinds:\
+            ax.axvline(x, color='k', linestyle='--', alpha=0.7)\
+        ax.axvline(24-18-1,color='blue', linestyle='--', alpha=0.7, label='model start-time')\
+        \
+        #other\
+        fig.tight_layout()\
+        fig.legend()\
+\
+        #saving plot\
+        fig.savefig(os.path.join(outputFile, f"\{var_name\}_TimeSeries_\{date_folder\}.jpg"))\
+        plt.close(fig)   # ensures it won\'92t show up in Jupyter\
+    \
+    #3. VERTICAL PROFILES\
+    def MultiAverage_VerticalProfiles(self,numerics, var_data,var_name,var_units,date_string, date_folder, outputFile):\
+        #setting up labels\
+        times = np.arange(0, var_data.shape[0]*3, 3)  # [0,3,6,9,...]\
+        labels = [f"\{t\}-\{t+3-1\} h" for t in times]\
+        \
+        #setting up number of plots\
+        nplots = var_data.shape[0]\
+        cols = 8                                      # 8 profiles per row\
+        rows = int(np.ceil(nplots / cols))            # number of rows needed\
+        \
+        #setting up plot figure\
+        fig = plt.figure(figsize=(2*cols, 3*rows), constrained_layout=True)   # scale fig size to rows/cols\
+        gs = gridspec.GridSpec(rows, cols, figure=fig, wspace=0.1)\
+        \
+        axes = []\
+        for i, t in enumerate(times):\
+            r = i // cols   # row index\
+            c = i % cols    # column index\
+            ax = fig.add_subplot(gs[r, c])\
+            ax.plot(var_data[i, :], numerics.P)\
+    \
+            #fixing yaxis\
+            ax.set_ylim(bottom=numerics.P.min(),top=numerics.P.max())\
+            ax.invert_yaxis()\
+            \
+            #labels\
+            ax.set_title(labels[i], fontsize=12)\
+            ax.set_xlabel(f"\{var_name\} \{var_units\}",fontsize=9)\
+            if c == 0:\
+                ax.set_ylabel("p (hPa)")\
+            else:\
+                ax.set_yticklabels([])  # hide y tick labels except first col\
+            # axes.append(ax)\
+        \
+        #fixing xlims\
+        axes = fig.get_axes()\
+        MatchAxisLimits(axes, dim='x')\
+        \
+        fig.suptitle(f"Vertical Profiles of \{var_name\} \{var_units\} \\nERA5 Data on \{date_string\}")\
+\
+        #saving plot\
+        fig.savefig(os.path.join(outputFile, f"\{var_name\}_VerticalProfiles_\{date_folder\}.jpg"))\
+        plt.close(fig)   # ensures it won\'92t show up in Jupyter\
+\
+    #4. Horizontal Fields\
+    def MultiAverage_HorizontalFields(self, var_data, var_name, var_units, date_string, date_folder, plev, outputFile, colormap):\
+        """\
+        Plot horizontal contour maps at a given pressure level for each block in var_data,\
+        with a single consistent colorbar.\
+        """\
+        nblocks, Nz, Ny, Nx = var_data.shape\
+        pc = np.linspace(1000, 1, Nz)       # pressure coords\
+        yc = np.arange(0,Ny,1)\
+        xc = np.arange(0,Nx,1)\
+        pind = np.argmin(np.abs(pc - plev)) # nearest index\
+        times = np.arange(0, nblocks*3, 3)  # hours (assuming 3h blocks)\
+        labels = [f"\{t\}-\{t+3-1\} h" for t in times]\
+    \
+        # layout\
+        cols = 8\
+        rows = int(np.ceil(nblocks / cols))\
+    \
+        # global color limits\
+        vmin = np.min(var_data[:, pind, :, :])\
+        vmax = np.max(var_data[:, pind, :, :])\
+    \
+        fig = plt.figure(figsize=(2.5*cols, 2.5*rows), constrained_layout=True)\
+        gs = gridspec.GridSpec(rows, cols, figure=fig, wspace=0.1)\
+    \
+        mappable = None  # will store the last contourf object\
+    \
+        for i in range(nblocks):\
+            r = i // cols\
+            c = i % cols\
+            ax = fig.add_subplot(gs[r, c])\
+    \
+            # horizontal slice at given z index\
+            field = var_data[i, pind, :, :]   # (Ny, Nx)\
+            cf = ax.contourf(xc,yc,field, cmap=colormap, vmin=vmin, vmax=vmax)\
+    \
+            ax.set_title(labels[i], fontsize=12)\
+            mappable = cf\
+    \
+        # one shared colorbar\
+        cbar = fig.colorbar(mappable, ax=fig.get_axes(), orientation="vertical", shrink=0.6)\
+        cbar.set_label(f"\{var_name\} \{var_units\}")\
+    \
+        fig.suptitle(f"Horizontal Fields of \{var_name\} \{var_units\} at p=\{plev\} hPa \\nERA5 Data on \{date_string\}")\
+\
+        #saving plot\
+        fig.savefig(os.path.join(outputFile, f"\{var_name\}_HorizontalFields_\{date_folder\}.jpg"))\
+        plt.close(fig)   # ensures it won\'92t show up in Jupyter\
+\
+plotting = Plotting()\
+\
+\
+\
+*************** 2***************\
+\
+\
+\
+#NUMERICS\
+class Numerics:\
+    def __init__(self, Nt,Np,Nlat,Nlon, dt,\
+                 TIME,P,LAT,LON):\
+        # store base values\
+        self.dt = dt #seconds\
+\
+        self.Nt = Nt   # number of time steps (from your data array)\
+        self.Np = Np   # number of time steps (from your data array)\
+        self.Nlat = Nlat   # number of time steps (from your data array)\
+        self.Nlon = Nlon   # number of time steps (from your data array)\
+\
+        #dimension arrays\
+        self.TIME = TIME\
+        self.P = P\
+        self.LAT = LAT\
+        self.LON = LON\
+\
+        # derived arrays\
+        self.time = np.arange(0, Nt*dt, dt)  # seconds\
+\
+        # time units\
+        self.second = 1\
+        self.minute = 60\
+        self.hour = 60**2\
+        self.day = 24*(60**2)\
+        self.minute_index = np.argmin(np.abs(self.time - self.minute))\
+        self.hour_index = np.argmin(np.abs(self.time - self.hour))\
+        self.day_index = np.argmin(np.abs(self.time - self.day))\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+********** UPDATES TO INPUTDATA_DATAANALYSIS *****************\
+\
+\
+*************** 1 ***************\
+\
+#load in ERA5 data\
+variables = \{\
+    "u_component_of_wind": \{"unit": r"$m\\ s^\{-1\}$", "colormap": "RdBu_r"\},\
+    # "v_component_of_wind": \{"unit": r"$m\\ s^\{-1\}$", "colormap": "RdBu_r"\},\
+    # "vertical_velocity": \{"unit": r"$Pa\\ s^\{-1\}$", "colormap": "RdBu_r"\},\
+    # "divergence": \{"unit": r"$s^\{-1\}$", "colormap": "RdBu_r"\},\
+    # "vorticity": \{"unit": r"$s^\{-1\}$", "colormap": "RdBu_r"\},\
+    "temperature": \{"unit": r"$K$", "colormap": "coolwarm"\},\
+    "specific_humidity": \{"unit": r"$kg\\ kg^\{-1\}$", "colormap": "YlGnBu"\},\
+    "specific_cloud_liquid_water_content": \{"unit": r"$kg\\ kg^\{-1\}$", "colormap": "Blues"\},\
+    "specific_cloud_ice_water_content": \{"unit": r"$kg\\ kg^\{-1\}$", "colormap": "Purples"\},\
+    "specific_rain_water_content": \{"unit": r"$kg\\ kg^\{-1\}$", "colormap": "GnBu"\},\
+    "relative_humidity": \{"unit": r"$\\%$", "colormap": "BrBG"\},\
+    "cloud_cover": \{"unit": r"$1$", "colormap": "Greys"\},\
+    "geopotential": \{"unit": r"$m^\{2\}\\ s^\{-2\}$", "colormap": "viridis"\}\
+\}\
+\
+\
+loadDirectorys = [\
+    os.path.join(dataDirectory, date_folder, f"\{var\}_ERA5_\{date_folder\}.nc")\
+    for var in variables.keys()\
+]\
+loadDirectorys\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+*************** 2 ***************\
+\
+def RunCalculations(var_data, units, variable, calculation, numerics):\
+    calculation_results = \{\}\
+\
+    arr   = var_data\
+    units = units\
+\
+    tz, _ = Ultimate_AreaAverage(var_data, dims=('t','z','y','x'), dim_names=('t','z'), mode='keep')\
+    t, _  = Ultimate_AreaAverage(tz,  dims=('t','z'),        dim_names=('t',),   mode='keep')\
+\
+    three_hours = 3 * numerics.hour_index\
+    tz_3h   = calculation.block_vertical_profiles_2D(tz,  block=three_hours)\
+    tzyx_3h = calculation.block_vertical_profiles_4D(arr, block=three_hours)\
+\
+    calculation_results[variable] = \{\
+        "units": units,\
+        "tz": tz,          # (t,z)\
+        "t": t,            # (t,)\
+        "tz_3h": tz_3h,    # (nblocks, z)\
+        "tzyx_3h": tzyx_3h # (nblocks, z, y, x)\
+    \}\
+\
+    return calculation_results\
+    \
+def RunPlots(calculation_results, date_string, outputFile, plotting):\
+    for name, result in calculation_results.items():\
+        common_args = \{\
+            "var_name": name,\
+            "var_units": result["units"],\
+            "date_string": date_string,\
+            "date_folder":  date_folder,\
+            "outputFile": outputFile\
+        \}\
+\
+        plotting.TZContourPlot(var_data=result['tz'], colormap=colormap, **common_args)\
+        plotting.TimeSeries(numerics=numerics, var_data=result['t'], **common_args)\
+        plotting.MultiAverage_VerticalProfiles(numerics=numerics, var_data=result['tz_3h'], **common_args)\
+        plotting.MultiAverage_HorizontalFields(var_data=result['tzyx_3h'], plev=1000, colormap=colormap, **common_args)\
+\
+def FixVariableName(variable,var_name,var_data):\
+    if variable == 'divergence':\
+        variable = 'convergence'\
+        var_name = variable\
+        var_data*= 1\
+    return variable,var_name,var_data\
+\
+\
+\
+\
+\
+\
+*************** 3 ***************\
+\
+\
+\
+\
+\
+#RUNNING CALCULATIONS\
+for count, (loadDirectory, (variable, units, colormap)) in enumerate(tqdm(zip(loadDirectorys, variables.items()), total=len(loadDirectorys), desc="Running Calculations"), start=1):\
+    #print\
+    print(f"Plotting \{len(variables)\} Variables",'\\n')\
+    print(f"\{count\}. \{variable\} (\{units['unit']\}) 
+\f1 \uc0\u8594 
+\f0  \{loadDirectory\}")\
+    \
+    #loading the variable\
+    ncFile=xr.open_dataset(loadDirectory)\
+    var_name = [v for v in list(ncFile.data_vars) if v not in ["number", "expver"]][0]\
+    var_data=ncFile[var_name].data\
+    [variable,var_name,var_data] = FixVariableName(variable,var_name,var_data)\
+    numerics = Numerics(Nt=ncFile.dims['valid_time'],Np=ncFile.dims['pressure_level'],Nlat=ncFile.dims['latitude'],Nlon=ncFile.dims['longitude'], dt=60**2,\
+                       TIME=ncFile[var_name]['valid_time'].data,P=ncFile[var_name]['pressure_level'].data,LAT=ncFile[var_name]['latitude'].data,LON=ncFile[var_name]['longitude'].data)\
+    print(variable+":\\n","\\t(Nt, Np, Nlat, Nlon) = ",(numerics.Nt,numerics.Np,numerics.Nlat,numerics.Nlon),"\\n")\
+\
+    #making output filename\
+    outputFile = os.path.join(outputDirectory, date_folder, variable) #variable also can be var_name\
+    print('\\n',var_name,'***')\'af\'af\'af\'ae\
+    os.makedirs(outputFile, exist_ok=True)\
+\
+    #doing calculations\
+    calculation_results=RunCalculations(var_data, "("+units['unit']+")", variable, calculation, numerics)\
+\
+    #plotting\
+    RunPlots(calculation_results, colormap, date_string, outputFile, plotting)}

@@ -1,0 +1,6 @@
+# Ignore macOS junk
+.DS_Store
+
+# Folders to Ignore
+DATA/
+OUTPUT/
