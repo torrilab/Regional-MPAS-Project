@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[2]:
+# In[ ]:
 
 
 # #IMPORT CLASSES
@@ -21,42 +21,46 @@
 #     globals().update(vars(globals()[mod]))              # import all functions into global namespace
 
 
-# In[3]:
+# In[ ]:
 
 
 """
 ====================================================
-Classes
+Classes_1
+Used for DownloadERA5Data and InputData_AreaAverages (so far)
 ====================================================
 """
 
 
-# In[4]:
+# In[ ]:
 
 
 # classes = ["Coordinates", "Strings", "Calculation", "Plotting"]
 # print("Importing Classes:\n" + ", ".join(classes))
 
 
-# In[5]:
+# In[ ]:
 
 
 #######################
 #DIRECTORIES
 
 
-# In[6]:
+# In[ ]:
 
 
 # #SETTING UP DIRECTORIES
 mainDirectory = '/mnt/lustre/koa/koastore/torri_group/air_directory/Projects/Regional-MPAS-Project/'
 
 
-# In[7]:
+# In[ ]:
 
 
 #################################
 #IMPORTING LIBRARIES
+
+#If libraries below are not installed, used "pip install library_name" 
+#or install with Conda or Mamba in terminal (https://www.anaconda.com/docs/tools/working-with-conda/packages/install-packages)
 
 #arrays
 import numpy as np
@@ -71,13 +75,16 @@ from matplotlib.colors import Normalize
 from matplotlib.ticker import MaxNLocator
 from matplotlib.ticker import ScalarFormatter
 import matplotlib.gridspec as gridspec
-()
+
+#Map Contours for Plotting
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 
 #system
 import sys; import os; import time
 
 
-# In[8]:
+# In[ ]:
 
 
 #IMPORT FUNCTIONS
@@ -113,7 +120,8 @@ for mod in modules:
 
 #NUMERICS
 class Numerics:
-    def __init__(self, Nt,Np,Nlat,Nlon, dt):
+    def __init__(self, Nt,Np,Nlat,Nlon, dt,
+                 TIME,P,LAT,LON):
         # store base values
         self.dt = dt #seconds
 
@@ -121,6 +129,12 @@ class Numerics:
         self.Np = Np   # number of time steps (from your data array)
         self.Nlat = Nlat   # number of time steps (from your data array)
         self.Nlon = Nlon   # number of time steps (from your data array)
+
+        #dimension arrays
+        self.TIME = TIME
+        self.P = P
+        self.LAT = LAT
+        self.LON = LON
 
         # derived arrays
         self.time = np.arange(0, Nt*dt, dt)  # seconds
@@ -314,7 +328,7 @@ class Calculation:
 calculation = Calculation()
 
 
-# In[ ]:
+# In[1]:
 
 
 #PLOTTING FUNCTIONS
@@ -324,10 +338,41 @@ class Plotting:
     def __init__(self):
         pass
 
+    # def add_land_features(self, ax):
+    #     """
+    #     Add coastlines, borders, and land features to a Cartopy axis.
+    #     """
+    #     ax.coastlines(resolution="10m", linewidth=0.5)
+    #     ax.add_feature(cfeature.BORDERS, linewidth=0.3)
+    #     ax.add_feature(cfeature.LAND, facecolor="lightgray", alpha=0.5)
+    #     ax.add_feature(cfeature.OCEAN, facecolor="lightblue", alpha=0.3)
+
+    def add_land_features(self, ax):
+        """
+        Add coastlines, borders, land, ocean, and labeled gridlines to a Cartopy axis.
+        """
+        # Coastlines and borders
+        ax.coastlines(resolution="10m", linewidth=0.5)
+        ax.add_feature(cfeature.BORDERS, linewidth=0.3)
+        
+        # Land and ocean shading
+        ax.add_feature(cfeature.LAND, facecolor="lightgray", alpha=0.5)
+        ax.add_feature(cfeature.OCEAN, facecolor="lightblue", alpha=0.3)
+
+        # Gridlines with labels
+        gl = ax.gridlines(
+            draw_labels=True, linewidth=0.3, color="gray", alpha=0.5, linestyle="--"
+        )
+        gl.top_labels = False    # remove top labels
+        gl.right_labels = False  # remove right labels
+        gl.xlabel_style = {"size": 8}
+        gl.ylabel_style = {"size": 8}
+
     #1. (T,Z) Contour Plot
-    def TZContourPlot(self, var_data, var_name, var_units, date_string, date_folder, outputFile):
+    def TZContourPlot(self,numerics, var_data, var_name, var_units, date_string, date_folder, outputFile, colormap):
         #setting up labels
-        pc = np.linspace(1000,1,var_data.shape[1])     # vertical levels
+        # pc = np.linspace(1000,1,var_data.shape[1])     # vertical levels
+        pc = numerics.P
         times = np.arange(0, var_data.shape[0]*3, 3)  # [0,3,6,9,...]
         labels = [f"{t}-{t+3-1} h" for t in times]
     
@@ -337,10 +382,12 @@ class Plotting:
     
         #plotting
         ax = fig.add_subplot(gs[0, 0])
-        ax.contourf(times,pc,var_data.T)    
+        cf = ax.contourf(times, pc, var_data.T, cmap=colormap)
+        cbar = fig.colorbar(cf, ax=ax)
+        cbar.set_label(f"{var_name} {var_units}")
     
         #inverting yaxis
-        ax.set_ylim(1000, 1) 
+        ax.invert_yaxis()
     
         #labels
         ax.set_xlabel('Time (hrs)')
@@ -354,15 +401,31 @@ class Plotting:
         
 
     #2. TIME SERIES    
-    def TimeSeries(self, var_data, var_name, var_units, date_string, date_folder, outputFile, numerics):
+    def TimeSeries(self,numerics, var_data, var_name, var_units, date_string, date_folder, outputFile):
         #setting up plot figure
         fig = plt.figure(figsize=(10,4))
         gs = gridspec.GridSpec(1, 1, figure=fig)
     
         #plotting
         ax = fig.add_subplot(gs[0, 0])
-        ax.plot(numerics.time/3600, var_data, lw=1.5)
-    
+        x_data=numerics.time/3600
+        ax.plot(x_data, var_data, lw=1.5)
+
+        #fix axises
+        #yticks
+        ymin = np.floor(np.min(var_data))
+        ymax = np.ceil(np.max(var_data))
+        ax.set_ylim(ymin, ymax)
+        yticks = np.arange(ymin, ymax + 1, 1)
+        ax.set_yticks(yticks)
+
+        #xticks
+        xmin = np.floor(np.min(x_data))
+        xmax = np.ceil(np.max(x_data)+1)
+        ax.set_xlim(xmin, xmax)
+        xticks = np.arange(xmin, xmax + 1, 1)
+        ax.set_xticks(xticks)
+
         #labels
         ax.set_xlabel('Time (hrs)')
         ax.set_ylabel(f"{var_name} {var_units}")
@@ -373,10 +436,10 @@ class Plotting:
         ax.set_xticks(np.arange(0, max_hours+1, 3))
     
         #vertical lines
-        vline_xinds = np.arange(0, 24*3+1, 24)  # e.g. every 24 hrs
+        ndays=3; vline_xinds = np.insert(np.arange(24, 24*ndays+1, 24) - 1, 0, 0) # e.g. every 24 hrs
         for x in vline_xinds:
             ax.axvline(x, color='k', linestyle='--', alpha=0.7)
-        ax.axvline(24-18,color='blue', linestyle='--', alpha=0.7, label='model start-time')
+        ax.axvline(24-18-1,color='blue', linestyle='--', alpha=0.7, label='model start-time')
         
         #other
         fig.tight_layout()
@@ -387,9 +450,8 @@ class Plotting:
         plt.close(fig)   # ensures it won’t show up in Jupyter
     
     #3. VERTICAL PROFILES
-    def MultiAverage_VerticalProfiles(self, var_data,var_name,var_units,date_string, date_folder, outputFile):
+    def MultiAverage_VerticalProfiles(self,numerics, var_data,var_name,var_units,date_string, date_folder, outputFile):
         #setting up labels
-        pc = np.linspace(1000,1,var_data.shape[1])     # vertical levels
         times = np.arange(0, var_data.shape[0]*3, 3)  # [0,3,6,9,...]
         labels = [f"{t}-{t+3-1} h" for t in times]
         
@@ -407,9 +469,10 @@ class Plotting:
             r = i // cols   # row index
             c = i % cols    # column index
             ax = fig.add_subplot(gs[r, c])
-            ax.plot(var_data[i, :], pc)
+            ax.plot(var_data[i, :], numerics.P)
     
-            #inverting yaxis
+            #fixing yaxis
+            ax.set_ylim(bottom=numerics.P.min(),top=numerics.P.max())
             ax.invert_yaxis()
             
             #labels
@@ -432,18 +495,20 @@ class Plotting:
         plt.close(fig)   # ensures it won’t show up in Jupyter
 
     #4. Horizontal Fields
-    def MultiAverage_HorizontalFields(self, var_data, var_name, var_units, date_string, date_folder, plev, outputFile, cmap="RdBu_r"):
+    def MultiAverage_HorizontalFields(self, numerics, var_data, var_name, var_units, date_string, date_folder, plev, outputFile, colormap):
         """
         Plot horizontal contour maps at a given pressure level for each block in var_data,
         with a single consistent colorbar.
         """
         nblocks, Nz, Ny, Nx = var_data.shape
-        pc = np.linspace(1000, 1, Nz)       # pressure coords
-        yc = np.arange(0,Ny,1)
-        xc = np.arange(0,Nx,1)
-        pind = np.argmin(np.abs(pc - plev)) # nearest index
         times = np.arange(0, nblocks*3, 3)  # hours (assuming 3h blocks)
         labels = [f"{t}-{t+3-1} h" for t in times]
+    
+        # pressure coords
+        pc = numerics.P
+        pind = np.argmin(np.abs(pc - plev))  # nearest index
+        yc = numerics.LAT
+        xc = numerics.LON
     
         # layout
         cols = 8
@@ -461,11 +526,14 @@ class Plotting:
         for i in range(nblocks):
             r = i // cols
             c = i % cols
-            ax = fig.add_subplot(gs[r, c])
+            ax = fig.add_subplot(gs[r, c], projection=ccrs.PlateCarree())
     
             # horizontal slice at given z index
-            field = var_data[i, pind, :, :]   # (Ny, Nx)
-            cf = ax.contourf(xc,yc,field, cmap=cmap, vmin=vmin, vmax=vmax)
+            field = var_data[i, pind, :, :]
+            cf = ax.contourf(xc, yc, field, cmap=colormap, vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
+    
+            # add coastlines & land
+            self.add_land_features(ax)
     
             ax.set_title(labels[i], fontsize=12)
             mappable = cf
@@ -475,22 +543,10 @@ class Plotting:
         cbar.set_label(f"{var_name} {var_units}")
     
         fig.suptitle(f"Horizontal Fields of {var_name} {var_units} at p={plev} hPa \nERA5 Data on {date_string}")
-
-        #saving plot
+    
+        # saving plot
         fig.savefig(os.path.join(outputFile, f"{var_name}_HorizontalFields_{date_folder}.jpg"))
-        plt.close(fig)   # ensures it won’t show up in Jupyter
+        plt.close(fig)
+
 
 plotting = Plotting()
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
