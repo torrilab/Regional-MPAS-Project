@@ -369,7 +369,7 @@ class Plotting:
         gl.ylabel_style = {"size": 8}
 
     #1. (T,Z) Contour Plot
-    def TZContourPlot(self,numerics, var_data, var_name, var_units, date_string, date_folder, outputFile, colormap):
+    def TZContourPlot(self,numerics, var_data, var_name, var_units, date_string, date_folder, outputFile, colormap,data_lim, UTC_offset):
         #setting up labels
         # pc = np.linspace(1000,1,var_data.shape[1])     # vertical levels
         pc = numerics.P
@@ -382,10 +382,17 @@ class Plotting:
     
         #plotting
         ax = fig.add_subplot(gs[0, 0])
-        cf = ax.contourf(times, pc, var_data.T, cmap=colormap)
+        if data_lim != "NaN":  # user-specified range
+            vmin, vmax = data_lim
+        else:  # fallback to data range
+            vmin, vmax = np.nanmin(var_data), np.nanmax(var_data)
+            
+        levels = np.linspace(vmin, vmax, num=15)
+        cf = ax.contourf(times, pc, var_data.T, levels=levels, cmap=colormap, extend="both")
+
         cbar = fig.colorbar(cf, ax=ax)
         cbar.set_label(f"{var_name} {var_units}")
-    
+
         #inverting yaxis
         ax.invert_yaxis()
     
@@ -393,7 +400,7 @@ class Plotting:
         ax.set_xlabel('Time (hrs)')
         ax.set_ylabel('p ' + r'$(hrs)$')
         # ax.set_ylabel(f"{var_name} {var_units}")
-        ax.set_title(f"TZ Contour of {var_name} {var_units} \nERA5 Data on {date_string}")
+        ax.set_title(f"TZ Contour of {var_name} {var_units} \nERA5 Data on {date_string} UTC{UTC_offset}")
 
         #saving plot
         fig.savefig(os.path.join(outputFile, f"{var_name}_TZContour_{date_folder}.jpg"))
@@ -401,7 +408,7 @@ class Plotting:
         
 
     #2. TIME SERIES    
-    def TimeSeries(self,numerics, var_data, var_name, var_units, date_string, date_folder, outputFile):
+    def TimeSeries(self,numerics, var_data, var_name, var_units, date_string, date_folder, outputFile, data_lim, UTC_offset):
         #setting up plot figure
         fig = plt.figure(figsize=(10,4))
         gs = gridspec.GridSpec(1, 1, figure=fig)
@@ -413,11 +420,14 @@ class Plotting:
 
         #fix axises
         #yticks
-        ymin = np.floor(np.min(var_data))
-        ymax = np.ceil(np.max(var_data))
-        ax.set_ylim(ymin, ymax)
-        yticks = np.arange(ymin, ymax + 1, 1)
-        ax.set_yticks(yticks)
+        if data_lim == "NaN":
+            ymin = np.min(var_data)
+            ymax = np.max(var_data)
+            ax.set_ylim(ymin, ymax)
+            # yticks = np.arange(ymin, ymax + 1, 1)
+            # ax.set_yticks(yticks)
+        elif data_lim != "NaN": #data lim
+            ax.set_ylim(data_lim)
 
         #xticks
         xmin = np.floor(np.min(x_data))
@@ -429,7 +439,7 @@ class Plotting:
         #labels
         ax.set_xlabel('Time (hrs)')
         ax.set_ylabel(f"{var_name} {var_units}")
-        ax.set_title(f"Time-series of {var_name} {var_units} \nERA5 Data on {date_string}")
+        ax.set_title(f"Time-series of {var_name} {var_units} \nERA5 Data on {date_string} UTC{UTC_offset}")
     
         # Set xticks every 3 hours
         max_hours = numerics.time[-1]/3600
@@ -440,6 +450,8 @@ class Plotting:
         for x in vline_xinds:
             ax.axvline(x, color='k', linestyle='--', alpha=0.7)
         ax.axvline(24-18-1,color='blue', linestyle='--', alpha=0.7, label='model start-time')
+
+        
         
         #other
         fig.tight_layout()
@@ -450,7 +462,7 @@ class Plotting:
         plt.close(fig)   # ensures it won’t show up in Jupyter
     
     #3. VERTICAL PROFILES
-    def MultiAverage_VerticalProfiles(self,numerics, var_data,var_name,var_units,date_string, date_folder, outputFile):
+    def MultiAverage_VerticalProfiles(self,numerics, var_data,var_name,var_units,date_string, date_folder, outputFile, vline,data_lim, UTC_offset):
         #setting up labels
         times = np.arange(0, var_data.shape[0]*3, 3)  # [0,3,6,9,...]
         labels = [f"{t}-{t+3-1} h" for t in times]
@@ -474,6 +486,10 @@ class Plotting:
             #fixing yaxis
             ax.set_ylim(bottom=numerics.P.min(),top=numerics.P.max())
             ax.invert_yaxis()
+
+            #adding vline
+            if vline != "NaN":
+                ax.axvline(vline,linestyle='dashed',color='gray')            
             
             #labels
             ax.set_title(labels[i], fontsize=12)
@@ -487,15 +503,20 @@ class Plotting:
         #fixing xlims
         axes = fig.get_axes()
         MatchAxisLimits(axes, dim='x')
+
+        #data lim
+        if data_lim != "NaN":
+            for ax in axes:
+                ax.set_xlim(data_lim)
         
-        fig.suptitle(f"Vertical Profiles of {var_name} {var_units} \nERA5 Data on {date_string}")
+        fig.suptitle(f"Vertical Profiles of {var_name} {var_units} \nERA5 Data on {date_string} UTC{UTC_offset}")
 
         #saving plot
         fig.savefig(os.path.join(outputFile, f"{var_name}_VerticalProfiles_{date_folder}.jpg"))
         plt.close(fig)   # ensures it won’t show up in Jupyter
 
     #4. Horizontal Fields
-    def MultiAverage_HorizontalFields(self, numerics, var_data, var_name, var_units, date_string, date_folder, plev, outputFile, colormap):
+    def MultiAverage_HorizontalFields(self, numerics, var_data, var_name, var_units, date_string, date_folder, plev, outputFile, colormap,data_lim, UTC_offset):
         """
         Plot horizontal contour maps at a given pressure level for each block in var_data,
         with a single consistent colorbar.
@@ -515,8 +536,14 @@ class Plotting:
         rows = int(np.ceil(nblocks / cols))
     
         # global color limits
-        vmin = np.min(var_data[:, pind, :, :])
-        vmax = np.max(var_data[:, pind, :, :])
+        if data_lim != "NaN":  # user-specified range
+            vmin, vmax = data_lim
+        else:  # fallback to data range
+            vmin, vmax = np.nanmin(var_data[:, pind, :, :]), np.nanmax(var_data[:, pind, :, :])
+
+        if np.isclose(vmin, vmax): #correction for if vmin=vmax
+            vmin = vmax - 1e-6
+        levels = np.linspace(vmin, vmax, num=15)
     
         fig = plt.figure(figsize=(2.5*cols, 2.5*rows), constrained_layout=True)
         gs = gridspec.GridSpec(rows, cols, figure=fig, wspace=0.1)
@@ -530,7 +557,13 @@ class Plotting:
     
             # horizontal slice at given z index
             field = var_data[i, pind, :, :]
-            cf = ax.contourf(xc, yc, field, cmap=colormap, vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
+            cf = ax.contourf(
+                    xc, yc, field,
+                    levels=levels,
+                    cmap=colormap,
+                    extend="both",
+                    transform=ccrs.PlateCarree()
+                )
     
             # add coastlines & land
             self.add_land_features(ax)
@@ -542,7 +575,7 @@ class Plotting:
         cbar = fig.colorbar(mappable, ax=fig.get_axes(), orientation="vertical", shrink=0.6)
         cbar.set_label(f"{var_name} {var_units}")
     
-        fig.suptitle(f"Horizontal Fields of {var_name} {var_units} at p={plev} hPa \nERA5 Data on {date_string}")
+        fig.suptitle(f"Horizontal Fields of {var_name} {var_units} at p={plev} hPa \nERA5 Data on {date_string} UTC{UTC_offset}")
     
         # saving plot
         fig.savefig(os.path.join(outputFile, f"{var_name}_HorizontalFields_{date_folder}.jpg"))
@@ -550,3 +583,4 @@ class Plotting:
 
 
 plotting = Plotting()
+
