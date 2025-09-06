@@ -373,8 +373,7 @@ class Plotting:
         #setting up labels
         # pc = np.linspace(1000,1,var_data.shape[1])     # vertical levels
         pc = numerics.P
-        times = np.arange(0, var_data.shape[0]*3, 3)  # [0,3,6,9,...]
-        labels = [f"{t}-{t+3-1} h" for t in times]
+        times = np.arange(0, var_data.shape[0]*1, 1)  # [0,3,6,9,...]
     
         #setting up plot figure
         fig = plt.figure(figsize=(10,4))
