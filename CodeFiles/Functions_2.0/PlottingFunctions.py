@@ -263,13 +263,39 @@ def convert_gif_to_mp4(input_file, output_file, fps,speed,bitrate='750k'):
 
 
 #USEFUL VERTICAL PROFILE PLOTTING FUNCTIONS
-def apply_scientific_notation(axes, use_math_text=True, power_limits=(-1, 1)):
-    #Provide Axises in terms of [ax1,ax2,...]
-    from matplotlib.ticker import ScalarFormatter
+# def apply_scientific_notation(axes, use_math_text=True, power_limits=(-1, 1)): #OLD VERSION
+#     #Provide Axises in terms of [ax1,ax2,...]
+#     from matplotlib.ticker import ScalarFormatter
+#     for axis in axes:
+#         formatter = ScalarFormatter(useMathText=use_math_text)
+#         formatter.set_scientific(True)
+#         formatter.set_powerlimits(power_limits)
+#         axis.xaxis.set_major_formatter(formatter)
+
+from matplotlib.ticker import ScalarFormatter
+class RoundedScalarFormatter(ScalarFormatter):
+    def __init__(self, decimals=2, useMathText=True, powerlimits=(-1, 1)):
+        super().__init__(useMathText=useMathText)
+        self.decimals = decimals
+        self.set_scientific(True)
+        self.set_powerlimits(powerlimits)
+        self.set_useOffset(False)
+
+    def _set_format(self):
+        # Override how the mantissas (tick labels) are formatted
+        self.format = f"%.{self.decimals}f"
+
+
+def apply_scientific_notation(axes, use_math_text=True, power_limits=(-1, 1), decimals=2):
+    """
+    Apply scientific notation with mantissas rounded to a fixed number of decimals.
+    """
     for axis in axes:
-        formatter = ScalarFormatter(useMathText=use_math_text)
-        formatter.set_scientific(True)
-        formatter.set_powerlimits(power_limits)
+        formatter = RoundedScalarFormatter(
+            decimals=decimals,
+            useMathText=use_math_text,
+            powerlimits=power_limits
+        )
         axis.xaxis.set_major_formatter(formatter)
 
 def apply_scientific_notation_colorbar(cbars):
@@ -317,6 +343,32 @@ def fix_y_limits(axes):
     # Set the same x-limits for all axes
     for axis in axes:
         axis.set_ylim(result)
+
+def FixedTicks(axs, dim='x', buffer_frac=0.05, nticks=6):
+    import numpy as np
+    from matplotlib.ticker import LinearLocator
+
+    def round_sig(x, sig=3):
+        return float(f"{x:.{sig}g}")
+
+    for ax in axs:
+        if dim == 'x':
+            data_min, data_max = ax.dataLim.intervalx
+        elif dim == 'y':
+            data_min, data_max = ax.dataLim.intervaly
+            
+        data_range = data_max - data_min
+        buffer = data_range * buffer_frac
+        a = round_sig(data_min - buffer, 2)
+        b = round_sig(data_max + buffer, 2)
+
+        if dim == 'x':
+            ax.set_xlim(a, b)
+            ax.xaxis.set_major_locator(LinearLocator(nticks))
+
+        elif dim == 'y':
+            ax.set_ylim(a, b)
+            ax.yaxis.set_major_locator(LinearLocator(nticks))
 
 
 # In[3]:
