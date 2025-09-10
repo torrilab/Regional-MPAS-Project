@@ -274,19 +274,18 @@ def convert_gif_to_mp4(input_file, output_file, fps,speed,bitrate='750k'):
 
 from matplotlib.ticker import ScalarFormatter
 class RoundedScalarFormatter(ScalarFormatter):
-    def __init__(self, decimals=2, useMathText=True, powerlimits=(-1, 1)):
+    def __init__(self, decimals=2, useMathText=True, powerlimits=(-1, 1), scientific=True):
         super().__init__(useMathText=useMathText)
         self.decimals = decimals
-        self.set_scientific(True)
+        self.set_scientific(scientific)
         self.set_powerlimits(powerlimits)
         self.set_useOffset(False)
 
     def _set_format(self):
-        # Override how the mantissas (tick labels) are formatted
         self.format = f"%.{self.decimals}f"
 
 
-def apply_scientific_notation(axes, use_math_text=True, power_limits=(-1, 1), decimals=2):
+def apply_scientific_notation(axes, use_math_text=True, power_limits=(-1, 1), decimals=2, scientific=True):
     """
     Apply scientific notation with mantissas rounded to a fixed number of decimals.
     """
@@ -294,7 +293,8 @@ def apply_scientific_notation(axes, use_math_text=True, power_limits=(-1, 1), de
         formatter = RoundedScalarFormatter(
             decimals=decimals,
             useMathText=use_math_text,
-            powerlimits=power_limits
+            powerlimits=power_limits,
+            scientific=scientific
         )
         axis.xaxis.set_major_formatter(formatter)
 
