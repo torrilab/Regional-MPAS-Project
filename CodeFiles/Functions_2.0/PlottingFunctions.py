@@ -1,20 +1,31 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[4]:
 
 
-"""
-====================================================
-PlottingFunctions
-====================================================
-"""
+# #Import PlottingFunctions 
+# import sys
+# dir2='/mnt/lustre/koa/koastore/torri_group/air_directory/DCI-Project/'
+# path=dir2+'../Functions/'
+# sys.path.append(path)
+
+# import NumericalFunctions
+# from NumericalFunctions import * # import NumericalFunctions 
+# import PlottingFunctions
+# from PlottingFunctions import * # import PlottingFunctions
 
 
-# In[ ]:
+# # # Get all functions in NumericalFunctions
+# # import inspect
+# # functions = [f[0] for f in inspect.getmembers(NumericalFunctions, inspect.isfunction)]
+# # functions
 
 
-#IMPORTING NECESSARY LIBRARIES
+# In[1]:
+
+
+#Importing Packages
 import numpy as np
 import xarray as xr
 
@@ -309,8 +320,6 @@ def apply_scientific_notation_colorbar(cbars):
 #Makes ticks flush to figure boundaries (recommended)
 def SnapLimitsToTicks(axes, dim="x"):
     from matplotlib.ticker import AutoLocator
-    import numpy as np
-    
     """
     Snap axis limits to the nearest ticks that enclose the visible data.
     Ignores helper lines (axhline, axvline, etc.) by ignoring lines with <= 2 points (better to run helper lines afterwards). 
@@ -327,6 +336,13 @@ def SnapLimitsToTicks(axes, dim="x"):
                     continue
                 mask = (ydata >= ymin) & (ydata <= ymax)
                 xs.extend(xdata[mask])
+            # --- include fill_betweenx (PolyCollection) data ---
+            for coll in ax.collections:
+                for path in coll.get_paths():
+                    coords = path.vertices
+                    ymask = (coords[:, 1] >= ymin) & (coords[:, 1] <= ymax)
+                    xs.extend(coords[:, 0][ymask])
+
             lo, hi = (min(xs), max(xs)) if xs else ax.dataLim.intervalx
      
             locator = AutoLocator()
@@ -346,6 +362,12 @@ def SnapLimitsToTicks(axes, dim="x"):
                     continue
                 mask = (xdata >= xmin) & (xdata <= xmax)
                 ys.extend(ydata[mask])
+            # --- include fill_betweenx (PolyCollection) data ---  
+            for coll in ax.collections:
+                for path in coll.get_paths():
+                    coords = path.vertices
+                    xmask = (coords[:, 0] >= xmin) & (coords[:, 0] <= xmax)
+                    ys.extend(coords[:, 1][xmask])
             lo, hi = (min(ys), max(ys)) if ys else ax.dataLim.intervaly
 
             locator = AutoLocator()
@@ -354,7 +376,6 @@ def SnapLimitsToTicks(axes, dim="x"):
             lo_tick = ticks[ticks <= lo][-1]
             hi_tick = ticks[ticks >= hi][0]
             ax.set_ylim(lo_tick, hi_tick)
-
 
 # In[3]:
 
@@ -445,7 +466,7 @@ def fix_tick_labels(axises, data, data_dim, tick_axis, d_xtick, d_ytick, cell_lo
 # fix_tick_labels([ax], data, data_dim='z', tick_axis='y', d_xtick=10, d_ytick=2, cell_loc='center',round=2,meters=False)  # apply 
 
 
-# In[ ]:
+# In[1]:
 
 
 def fix_x_limits(axes):
@@ -485,7 +506,7 @@ def fix_y_limits(axes):
     # Set the same x-limits for all axes
     for axis in axes:
         axis.set_ylim(result)
-        
+                
 def MatchAxisLimits(axes, dim='x'):
     """
     Find the axis whose tick bounds span all others,
@@ -576,9 +597,83 @@ def jpg_to_pdf(input_folder, output_pdf):
 # jpg_to_pdf(input_folder, output_pdf)
 
 
-# In[2]:
+# In[3]:
 
 
+def DocString():
+    """
+    Create a contour or filled contour plot with extensive customization options.
+
+    Parameters:
+    -----------
+    ax : matplotlib.axes.Axes
+        The matplotlib Axes object where the contour plot will be drawn.
+
+    PlotData : 2D array-like
+        The 2D data array to contour.
+
+    xTickLabels : 1D array-like
+        The x coordinates corresponding to the columns of PlotData.
+
+    yTickLabels : 1D array-like
+        The y coordinates corresponding to the rows of PlotData.
+
+    contour_type : str, optional
+        Specify the type of contour plot:
+        - 'line' for contour lines (ax.contour),
+        - 'fill' for filled contours (ax.contourf).
+        Default is None (no plot).
+
+    num_xticks : int, optional
+        Number of x-axis ticks to display. If None, default matplotlib ticks are used.
+
+    round_xticks : int, optional
+        Number of decimal places to round x-axis tick labels to.
+
+    num_yticks : int, optional
+        Number of y-axis ticks to display. If None, default matplotlib ticks are used.
+
+    round_yticks : int, optional
+        Number of decimal places to round y-axis tick labels to.
+
+    add_colorbar : bool, optional
+        Whether to add a colorbar to the plot.
+
+    fig : matplotlib.figure.Figure, optional
+        The figure object needed to add the colorbar.
+
+    colorbar_label : str, optional
+        Label string for the colorbar.
+
+    xlabel : str, optional
+        Label for the x-axis.
+
+    ylabel : str, optional
+        Label for the y-axis.
+
+    solid_contour_labels : bool, optional
+        If True and contour_type is 'line', adds contour line labels.
+
+    solid_contour_round : int, optional
+        Number of decimal places to round contour labels to.
+
+    xtick_rotation : float or int, optional
+        Rotation angle in degrees for x-axis tick labels.
+
+    ytick_rotation : float or int, optional
+        Rotation angle in degrees for y-axis tick labels.
+
+    cbar_rotation : float or int, optional
+        Rotation angle in degrees for colorbar tick labels.
+
+    **kwargs :
+        Additional keyword arguments passed directly to matplotlib's contour or contourf function.
+
+    Returns:
+    --------
+    contour : QuadContourSet
+        The matplotlib contour set object created by contour or contourf.
+    """
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -615,12 +710,12 @@ def UltimateContourPlot(
             cbar.ax.yaxis.label.set_rotation(colorbar_label_rotation)
         if cbar_rotation is not None:
             for tick in cbar.ax.get_yticklabels():
-                tick.set_rotation(cbar_rotatizon)
+                tick.set_rotation(cbar_rotation)
 
     # X-ticks
     if num_xticks is not None:
         if xTickInterval is not None:
-            xticks = np.arange(0, x.max()+1, xTickInterval)
+            xticks = np.arange(0, xTickLabels.max()+1, xTickInterval)
         else:
             xticks = np.linspace(xTickLabels.min(), xTickLabels.max(), num_xticks)
         ax.set_xticks(xticks)
@@ -631,7 +726,7 @@ def UltimateContourPlot(
     # Y-ticks
     if num_yticks is not None:
         if yTickInterval is not None:
-            yticks = np.arange(0, y.max()+1, yTickInterval)
+            yticks = np.arange(0, yTickLabels.max()+1, yTickInterval)
         else:
             yticks = np.linspace(yTickLabels.min(), yTickLabels.max(), num_yticks)
         ax.set_yticks(yticks)
@@ -656,118 +751,4 @@ def UltimateContourPlot(
             fig = ax.figure
         fig.savefig(save_path, dpi=save_dpi)
     return contour,cbar
-
-
-# In[ ]:
-
-
-# #ADVANCED EXAMPLE (data not available)
-
-# #NEW PLOTTING METHOD
-
-
-# ######
-# cmap1 = plt.cm.viridis
-# cmap2 = plt.cm.seismic 
-# n_levels=29
-# ######
-
-# ######
-# vmax_shared = np.max([np.max(profile_array_e), np.max(profile_array_d)])
-# norm_shared = mcolors.Normalize(vmin=0, vmax=vmax_shared)
-# norm_shared = None #COMMENT OUT IF COLORBARS SHOULD BE SHARED
-# ######
-
-# # === Create figure and subplots ===
-# # fig, axs = plt.subplots(2, 2, figsize=(15, 10))
-# fig = plt.figure(figsize=(10, 8))
-# from matplotlib.gridspec import GridSpec
-# gs = GridSpec(2, 2, figure=fig)
-# ax1 = fig.add_subplot(gs[0, 0])
-# ax2 = fig.add_subplot(gs[0, 1])
-# ax3 = fig.add_subplot(gs[1, 0])
-
-# # === Base Plot configuration parameters ===
-# plot_kwargs = {
-#     'PlotData': None, #THIS MUST BE SET SOMEWHERE
-#     'xTickLabels': None, 'yTickLabels': None, #THESE MUST BE SET SOMEWHERE
-#     'contour_type': 'fill',
-#     'num_xticks': 10,'round_xticks': 0, 'xTickInterval': 100,
-#     'num_yticks': 15,'round_yticks': 2, 'yTickInterval': None,
-#     'add_colorbar': True,'fig': fig, 'levels': 29, 'colorbar_label_rotation': 0, 'colorbar_label': None,
-#     'xlabel': "t (timesteps)", 'ylabel': "z (km)",
-#     'solid_contour_labels': True, 'solid_contour_round': None,
-#     'xtick_rotation': 0, 'ytick_rotation': 0, 'cbar_rotation': 0,
-#     'save_path': None, 'save_dpi': 300,
-#     'colorbar_kwargs': {
-#             'extend': 'both'
-#         },
-
-#     'norm': norm_shared
-# }
-
-# # === Plot 1 ===
-# plot_data1 = profile_array_e.copy().T
-# plot_data1[plot_data1==0]=np.nan
-# y = data['zh'].data  # len 95
-# x = np.arange(profile_array_e.shape[0])  # len 661
-# plot_kwargs['xTickLabels'] = x
-# plot_kwargs['yTickLabels'] = y
-
-# plot_kwargs1 = plot_kwargs.copy()
-# plot_kwargs1['PlotData'] = plot_data1
-# plot_kwargs1['cmap'] = cmap1
-# [contour1,cbar1]=UltimateContourPlot(ax1, **plot_kwargs1)
-# ax1.set_ylim(0,20)
-# ax1.set_title('Entrainment')
-
-# # # === Plot 2 ===
-# plot_data2 = profile_array_d.copy().T
-
-# plot_data2[plot_data2==0]=np.nan
-# plot_kwargs2 = plot_kwargs.copy()
-# plot_kwargs2['PlotData'] = plot_data2
-# plot_kwargs2['cmap'] = cmap1
-# [contour2,cbar2]=UltimateContourPlot(ax2, **plot_kwargs2)
-# ax2.set_ylim(0,20)
-# ax2.set_title('Detrainment')
-
-# # # === Plot 3 ===
-# plot_data3 = profile_array_net.copy().T
-# #######################################
-# vmin=-np.max(abs(profile_array_net))/2; vmax=+np.max(abs(profile_array_net))
-# percentile_vminmax=False
-# if percentile_vminmax==True:
-#     ####
-#     vmin = np.percentile(profile_array_net[profile_array_net<0], 1)
-#     vmax = np.percentile(profile_array_net[profile_array_net>0], 99)
-#     ####    
-# levels = np.linspace(vmin, vmax, n_levels)
-# norm = mcolors.BoundaryNorm(boundaries=levels, ncolors=256)
-# #######################################
-
-# plot_data3[plot_data3==0]=np.nan
-# plot_kwargs3 = plot_kwargs.copy()
-# plot_kwargs3['PlotData'] = plot_data3
-# plot_kwargs3['cmap'] = cmap2
-# plot_kwargs3['norm'] = norm
-# plot_kwargs3['levels'] = levels
-# [contour3,cbar3]=UltimateContourPlot(ax3, **plot_kwargs3)
-# ax3.set_ylim(0,20)
-# ax3.set_title('Net Entrainment')
-
-
-
-# ################################################################################
-# #TIGHT PLOTTING LAYOUT
-# plt.tight_layout()
-# #APPLY SCIENTIFIC NOTATION
-# def apply_scientific_notation_colorbar(cbars):
-#     from matplotlib.ticker import ScalarFormatter
-#     formatter = ScalarFormatter(useMathText=True)
-#     formatter.set_powerlimits((-2, 2))  # Adjust the range for scientific notation
-#     for cbar in cbars:  # These must be Colorbar instances
-#         cbar.formatter = formatter
-#         cbar.update_ticks()
-# apply_scientific_notation_colorbar([cbar1,cbar2,cbar3])
 
