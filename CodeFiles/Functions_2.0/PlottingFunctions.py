@@ -306,69 +306,54 @@ def apply_scientific_notation_colorbar(cbars):
         cbar.formatter = formatter
         cbar.update_ticks()
 
-def fix_x_limits(axes):
-    #Bounds all plots by min and max of the current xlims, so all subplots match
-    #Provide Axises in terms of [ax1,ax2,...]
-    
-    # Collect x-limits from all axes
-    xlims = [axis.get_xlim() for axis in axes]
-    mins = [xlim[0] for xlim in xlims]
-    maxes = [xlim[1] for xlim in xlims]
-    
-    # Find the total min and max
-    total_min = min(mins)
-    total_max = max(maxes)
-    result = (total_min, total_max)
-    print(result)
-    
-    # Set the same x-limits for all axes
-    for axis in axes:
-        axis.set_xlim(result)
-
-def fix_y_limits(axes):
-    #Bounds all plots by min and max of the current ylims, so all subplots match
-    #Provide Axises in terms of [ax1,ax2,...]
-    
-    # Collect x-limits from all axes
-    xlims = [axis.get_ylim() for axis in axes]
-    mins = [xlim[0] for xlim in xlims]
-    maxes = [xlim[1] for xlim in xlims]
-    
-    # Find the total min and max
-    total_min = min(mins)
-    total_max = max(maxes)
-    result = (total_min, total_max)
-    print(result)
-    
-    # Set the same x-limits for all axes
-    for axis in axes:
-        axis.set_ylim(result)
-
-def FixedTicks(axs, dim='x', buffer_frac=0.05, nticks=6):
+#Makes ticks flush to figure boundaries (recommended)
+def SnapLimitsToTicks(axes, dim="x"):
+    from matplotlib.ticker import AutoLocator
     import numpy as np
-    from matplotlib.ticker import LinearLocator
+    
+    """
+    Snap axis limits to the nearest ticks that enclose the visible data.
+    Ignores helper lines (axhline, axvline, etc.) by ignoring lines with <= 2 points (better to run helper lines afterwards). 
+    """
+    for ax in axes:
+        if dim == "x":
+            ymin, ymax = ax.get_ylim()
+            xs = []
+            for line in ax.get_lines():
+                xdata = np.asarray(line.get_xdata())
+                ydata = np.asarray(line.get_ydata())
+                # Skip constant or very short lines (axvline, etc.)
+                if len(np.unique(xdata)) <= 2 or len(np.unique(ydata)) <= 2:
+                    continue
+                mask = (ydata >= ymin) & (ydata <= ymax)
+                xs.extend(xdata[mask])
+            lo, hi = (min(xs), max(xs)) if xs else ax.dataLim.intervalx
+     
+            locator = AutoLocator()
+            ticks = locator.tick_values(lo, hi)
 
-    def round_sig(x, sig=3):
-        return float(f"{x:.{sig}g}")
+            lo_tick = ticks[ticks <= lo][-1]
+            hi_tick = ticks[ticks >= hi][0]
+            ax.set_xlim(lo_tick, hi_tick)
 
-    for ax in axs:
-        if dim == 'x':
-            data_min, data_max = ax.dataLim.intervalx
-        elif dim == 'y':
-            data_min, data_max = ax.dataLim.intervaly
-            
-        data_range = data_max - data_min
-        buffer = data_range * buffer_frac
-        a = round_sig(data_min - buffer, 2)
-        b = round_sig(data_max + buffer, 2)
+        else:  # y case
+            xmin, xmax = ax.get_xlim()
+            ys = []
+            for line in ax.get_lines():
+                xdata = np.asarray(line.get_xdata())
+                ydata = np.asarray(line.get_ydata())
+                if len(np.unique(xdata)) <= 2 or len(np.unique(ydata)) <= 2:
+                    continue
+                mask = (xdata >= xmin) & (xdata <= xmax)
+                ys.extend(ydata[mask])
+            lo, hi = (min(ys), max(ys)) if ys else ax.dataLim.intervaly
 
-        if dim == 'x':
-            ax.set_xlim(a, b)
-            ax.xaxis.set_major_locator(LinearLocator(nticks))
+            locator = AutoLocator()
+            ticks = locator.tick_values(lo, hi)
 
-        elif dim == 'y':
-            ax.set_ylim(a, b)
-            ax.yaxis.set_major_locator(LinearLocator(nticks))
+            lo_tick = ticks[ticks <= lo][-1]
+            hi_tick = ticks[ticks >= hi][0]
+            ax.set_ylim(lo_tick, hi_tick)
 
 
 # In[3]:
@@ -463,29 +448,87 @@ def fix_tick_labels(axises, data, data_dim, tick_axis, d_xtick, d_ytick, cell_lo
 # In[ ]:
 
 
-def MatchAxisLimits(axes, dim='x', buffer_frac=0.05,exclude_axlines=True):
-    all_data = []
+def fix_x_limits(axes):
+    #Bounds all plots by min and max of the current xlims, so all subplots match
+    #Provide Axises in terms of [ax1,ax2,...]
+    
+    # Collect x-limits from all axes
+    xlims = [axis.get_xlim() for axis in axes]
+    mins = [xlim[0] for xlim in xlims]
+    maxes = [xlim[1] for xlim in xlims]
+    
+    # Find the total min and max
+    total_min = min(mins)
+    total_max = max(maxes)
+    result = (total_min, total_max)
+    print(result)
+    
+    # Set the same x-limits for all axes
+    for axis in axes:
+        axis.set_xlim(result)
+
+def fix_y_limits(axes):
+    #Bounds all plots by min and max of the current ylims, so all subplots match
+    #Provide Axises in terms of [ax1,ax2,...]
+    
+    # Collect x-limits from all axes
+    xlims = [axis.get_ylim() for axis in axes]
+    mins = [xlim[0] for xlim in xlims]
+    maxes = [xlim[1] for xlim in xlims]
+    
+    # Find the total min and max
+    total_min = min(mins)
+    total_max = max(maxes)
+    result = (total_min, total_max)
+    print(result)
+    
+    # Set the same x-limits for all axes
+    for axis in axes:
+        axis.set_ylim(result)
+        
+def MatchAxisLimits(axes, dim='x'):
+    """
+    Find the axis whose tick bounds span all others,
+    then copy its ticks and limits to every axis in the list.
+    """
+    lo_vals, hi_vals = [], []
+
+    # Collect bounds
     for ax in axes:
-        for line in ax.lines:
-            # Get the data for the specified dimension
-            data = line.get_xdata() if dim == 'x' else line.get_ydata()
-            
-            # Exclude lines with constant data (likely axvline or axhline)
-            if exclude_axlines==True:
-                if len(set(data)) > 2:
-                    all_data.extend(data)
+        ticks = ax.get_xticks() if dim == 'x' else ax.get_yticks()
+        if len(ticks) > 1:
+            lo_vals.append(ticks[0])
+            hi_vals.append(ticks[-1])
 
-    if all_data:
-        data_min = min(all_data)
-        data_max = max(all_data)
-        data_range = data_max - data_min
-        buffer = data_range * buffer_frac
+    if not lo_vals or not hi_vals:
+        return None
 
-        for ax in axes:
-            if dim == 'x':
-                ax.set_xlim(data_min - buffer, data_max + buffer)
-            else:
-                ax.set_ylim(data_min - buffer, data_max + buffer)
+    lo, hi = min(lo_vals), max(hi_vals)
+
+    # Find reference axis
+    ref_ax = next(
+        (ax for ax in axes
+         if len((ticks := (ax.get_xticks() if dim == 'x' else ax.get_yticks()))) > 1
+         and ticks[0] == lo and ticks[-1] == hi),
+        None
+    )
+    if ref_ax is None:
+        return None  # no reference axis found
+
+    # Extract ticks and limits from reference
+    ref_ticks = ref_ax.get_xticks() if dim == 'x' else ref_ax.get_yticks()
+    ref_lim   = ref_ax.get_xlim() if dim == 'x' else ref_ax.get_ylim()
+
+    # Apply to all axes
+    for ax in axes:
+        if dim == 'x':
+            ax.set_xlim(ref_lim)
+            ax.set_xticks(ref_ticks)
+        else:
+            ax.set_ylim(ref_lim)
+            ax.set_yticks(ref_ticks)
+
+    return ref_ax
 
 
 # In[3]:
