@@ -26,7 +26,7 @@
 
 """
 ====================================================
-Classes_1
+Classes_InputData_DataAnalysis
 Used for DownloadERA5Data and InputData_AreaAverages (so far)
 ====================================================
 """
@@ -247,7 +247,7 @@ class Strings:
 strings=Strings()
 
 
-# In[ ]:
+# In[1]:
 
 
 #CALCULATION FUNCTIONS
@@ -288,7 +288,7 @@ class Calculation:
         profiles = np.stack(profiles, axis=0)   # (nblocks, Nz)
         return profiles
     
-    def block_vertical_profiles_4D(self, data, block=3):
+    def block_vertical_profiles_4D(self, data, block):
         """
         Compute block-averaged 3D fields from a 4D array (t,z,y,x),
         by averaging over t in blocks.
@@ -324,11 +324,50 @@ class Calculation:
     
         profiles = np.stack(profiles, axis=0)     # (nblocks, z, y, x)
         return profiles
+    
+    def block_vertical_profiles_3D(self, data, block):
+            """
+            Compute block-averaged 2D fields from a 3D array (t,y,x),
+            by averaging over t in blocks.
+    
+            Parameters
+            ----------
+            data : np.ndarray
+                Input array with shape (t,y,x).
+            block : int, optional
+                Number of timesteps per block (default=3).
+    
+            Returns
+            -------
+            profiles : np.ndarray
+                Block-averaged fields with shape (nblocks, y, x).
+                Each block is the average over `block` timesteps.
+            """
+            Nt, Ny, Nx = data.shape
+            profiles = []
+    
+            for t0 in range(0, Nt - block + 1, block):
+                # slice block of timesteps (block, y, x)
+                chunk = data[t0:t0+block, :, :]
+    
+                # average over time axis only
+                mean_block = np.mean(chunk, axis=0)   # (y, x)
+                mean_block, _ = Ultimate_AreaAverage(
+                    chunk,
+                    dims=('t','y','x'),
+                    dim_names=('y','x'),
+                    mode='keep'
+                )
+    
+                profiles.append(mean_block)
+    
+            profiles = np.stack(profiles, axis=0)   # (nblocks, y, x)
+            return profiles
             
 calculation = Calculation()
 
 
-# In[1]:
+# In[4]:
 
 
 #PLOTTING FUNCTIONS
@@ -659,6 +698,130 @@ class Plotting:
         fig.savefig(os.path.join(outputFile, f"{var_name}_HorizontalFields_{date_folder}.jpg"))
         plt.close(fig)
 
+    #4.5. Horizontal Fields (For Surface Variables)
+    def MultiAverage_HorizontalFields_Surface(self, numerics, var_data, var_name, var_units,
+                                      date_string, date_folder, plev, outputFile,
+                                      colormap, data_lim, line_contour, center_contour, UTC_offset):
+        """
+        Plot horizontal contour maps at a given pressure level for each block in var_data,
+        with a single consistent colorbar.
+        """
+        nblocks, Ny, Nx = var_data.shape
+        times = np.arange(0, nblocks*3, 3)  # hours (assuming 3h blocks)
+        labels = [f"{t}-{t+3-1} h" for t in times]
+    
+        # pressure coords
+        pc = numerics.P
+        # pind = np.argmin(np.abs(pc - plev))  # nearest index
+        yc = numerics.LAT
+        xc = numerics.LON
+    
+        # layout
+        cols = 8
+        rows = int(np.ceil(nblocks / cols))
+    
+        # global color limits
+        if data_lim != "NaN":  # user-specified range
+            vmin, vmax = data_lim
+        else:  # fallback to data range
+            vmin = np.nanmin(var_data[:, :, :])
+            vmax = np.nanmax(var_data[:, :, :])
+    
+        if np.isclose(vmin, vmax):  # correction for if vmin==vmax
+            vmin = vmax - 1e-6
+
+        # ----- TwoSlopeNorm setup -----
+        # if center_contour != "NaN":
+        #     norm   = TwoSlopeNorm(vmin=vmin, vcenter=center_contour, vmax=vmax)
+        #     levels = np.linspace(vmin, vmax, num=15)   # <- fixed array, not an int
+        # else:
+        #     norm   = None
+        #     levels = np.linspace(vmin, vmax, num=15)
+
+        # ----- BoundaryNorm setup -----
+        if center_contour != "NaN":
+            lim    = max(center_contour - vmin, vmax - center_contour)
+            edges  = np.linspace(center_contour - lim, center_contour + lim, 15)
+            if not np.any(np.isclose(edges, center_contour)):
+                edges = np.sort(np.r_[edges, center_contour])  # force a boundary at the center
+            norm   = BoundaryNorm(edges, ncolors=plt.get_cmap(colormap).N, clip=True)
+            levels = edges
+        else:
+            levels = np.linspace(vmin, vmax, 15)
+            norm   = BoundaryNorm(levels, ncolors=plt.get_cmap(colormap).N, clip=True)
+        
+        fig = plt.figure(figsize=(2.5*cols, 2.5*rows), constrained_layout=True)
+        gs = gridspec.GridSpec(rows, cols, figure=fig, wspace=0.1)
+    
+        mappable = None  # for the colorbar
+    
+        for i in range(nblocks):
+            r = i // cols
+            c = i % cols
+            ax = fig.add_subplot(gs[r, c], projection=ccrs.PlateCarree())
+    
+            # horizontal slice at given z index
+            field = var_data[i, :, :]
+    
+            cf = ax.contourf(
+                xc, yc, field,
+                levels=levels,                 # <- fixed global boundaries
+                cmap=colormap,
+                norm=norm,                     # <- shared norm (TwoSlope or None)
+                extend="both",
+                transform=ccrs.PlateCarree()
+            )
+    
+            if line_contour == "T":
+                ax.contour(
+                    xc, yc, field,
+                    levels=levels,             # <- same fixed levels for lines
+                    colors="k",
+                    linewidths=0.8,
+                    transform=ccrs.PlateCarree(),
+                    zorder=10
+                )
+
+            #             # # build 2D coordinate grids
+            # X, Y = np.meshgrid(xc, yc)
+            
+            # # grab 2D slices of winds at time i (already averaged over vertical levels)
+            # U = np.mean(calculation_results_temp1['u_component_of_wind']['tzyx_3h'], axis=1)[i]
+            # V = np.mean(calculation_results_temp2['v_component_of_wind']['tzyx_3h'], axis=1)[i]
+            
+            # # plot quiver
+            # step = 1
+            # speed = np.sqrt(U**2 + V**2)
+            # Q = ax.quiver(
+            #     X[::step, ::step], Y[::step, ::step],
+            #     U[::step, ::step], V[::step, ::step],
+            #     speed[::step, ::step],              # color map by speed
+            #     transform=ccrs.PlateCarree(),
+            #     scale=5, scale_units="xy", pivot="middle",
+            #     cmap="plasma", zorder=15
+            # )  # plot every 3rd point
+            # ########## #*##* quiver
+
+    
+            self.add_land_features(ax)
+            ax.set_title(labels[i], fontsize=12)
+    
+            # ---- KEY FIX 2: set the mappable ONCE (don’t overwrite with last panel)
+            if mappable is None:
+                mappable = cf
+    
+        # ---- Colorbar from the chosen QuadContourSet (cf)
+        cbar = fig.colorbar(mappable, ax=fig.get_axes(), orientation="vertical", shrink=0.6)
+        cbar.set_label(f"{var_name} {var_units}")
+    
+        fig.suptitle(
+            f"Horizontal Fields of {var_name} {var_units} at p={plev} hPa \n"
+            f"ERA5 Data on {date_string} UTC{UTC_offset}"
+        )
+    
+        fig.savefig(os.path.join(outputFile, f"{var_name}_HorizontalFields_{date_folder}.jpg"))
+        plt.close(fig)
+
         
     #5. Horizontal Fields (Vertical Average)
     def MultiAverage_HorizontalFields_VerticalAvg(self, numerics, var_data, var_name, var_units, date_string, date_folder, outputFile, colormap,data_lim, line_contour, center_contour, UTC_offset):
@@ -755,3 +918,4 @@ class Plotting:
 
 
 plotting = Plotting()
+
