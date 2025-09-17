@@ -61,7 +61,7 @@ def Ultimate_AreaAverage(data, dims, dim_names, mode="keep"):
         out_dims = tuple(d for d in dims if d not in dim_names)
 
         # Take Area Average
-        out = np.mean(data, axis=tuple(axes))
+        out = np.nanmean(data, axis=tuple(axes))
 
         return out, out_dims
 
@@ -74,7 +74,7 @@ def Ultimate_AreaAverage(data, dims, dim_names, mode="keep"):
         out_dims = tuple(d for d in dims if d in dim_names)
 
         # Take Area Average
-        out = np.mean(data, axis=tuple(axes))
+        out = np.nanmean(data, axis=tuple(axes))
 
         return out, out_dims
 

@@ -75,6 +75,7 @@ from matplotlib.colors import Normalize
 from matplotlib.ticker import MaxNLocator
 from matplotlib.ticker import ScalarFormatter
 import matplotlib.gridspec as gridspec
+from matplotlib.colors import BoundaryNorm
 
 #Map Contours for Plotting
 import cartopy.crs as ccrs
@@ -279,6 +280,7 @@ class Calculation:
             chunk = data[t0:t0+block, :]   # (block, z, y, x)
 
             # average over (t,y,x) → (z,)
+            # mean_block = np.nanmean(chunk, axis=0)
             mean_block, _ = Ultimate_AreaAverage(chunk,
                                            dims=('t','z'),
                                            dim_names=('z'),
@@ -314,7 +316,7 @@ class Calculation:
             chunk = data[t0:t0+block, :, :, :]
     
             # average over time axis only
-            mean_block = np.mean(chunk, axis=0)   # (z, y, x)
+            # mean_block = np.nanmean(chunk, axis=0)
             mean_block, _ = Ultimate_AreaAverage(chunk,
                                dims=('t','z','y','x'),
                                dim_names=('z','y','x'),
@@ -351,7 +353,7 @@ class Calculation:
                 chunk = data[t0:t0+block, :, :]
     
                 # average over time axis only
-                mean_block = np.mean(chunk, axis=0)   # (y, x)
+                # mean_block = np.nanmean(chunk, axis=0)
                 mean_block, _ = Ultimate_AreaAverage(
                     chunk,
                     dims=('t','y','x'),
@@ -480,8 +482,8 @@ class Plotting:
         #fix axises
         #yticks
         if data_lim == "NaN":
-            ymin = np.min(var_data)
-            ymax = np.max(var_data)
+            ymin = np.nanmin(var_data)
+            ymax = np.nanmax(var_data)
             ax.set_ylim(ymin, ymax)
             # yticks = np.arange(ymin, ymax + 1, 1)
             # ax.set_yticks(yticks)
@@ -489,8 +491,8 @@ class Plotting:
             ax.set_ylim(data_lim)
 
         #xticks
-        xmin = np.floor(np.min(x_data))
-        xmax = np.ceil(np.max(x_data)+1)
+        xmin = np.floor(np.nanmin(x_data))
+        xmax = np.ceil(np.nanmax(x_data)+1)
         ax.set_xlim(xmin, xmax)
         xticks = np.arange(xmin, xmax + 1, 1)
         ax.set_xticks(xticks)
