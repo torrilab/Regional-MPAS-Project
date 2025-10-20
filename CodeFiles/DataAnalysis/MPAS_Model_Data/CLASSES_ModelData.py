@@ -47,6 +47,9 @@ class UnstructuredModelData_Class:
         # # Load Variable Names
         # self.dataVariables,self.dataVariables_diag = self.GetVariableNames()
 
+        # Load Coordinates
+        self.GetCoordinates()
+
         # Print summary
         self.Summary()
 
@@ -126,6 +129,15 @@ class UnstructuredModelData_Class:
         with xr.open_dataset(first_file_diag, engine="netcdf4", decode_times=False, chunks={}) as ds:
             dataVariables_diag = list(ds.data_vars.keys())
         return dataVariables, dataVariables_diag
+
+    # ============================================================
+    # === Coordinates ========================================
+    # ============================================================
+
+    def GetCoordinates(self):
+        """Calculate basic model coordinates."""
+        self.NTime = len(self.timeStrings)
+        print(f"Calculated coordinate: NTime = {self.NTime}")
     
     # # ============================================================
     # # ========== On-demand Variable Access ==========
