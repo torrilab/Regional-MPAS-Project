@@ -1,9 +1,12 @@
 # Ignore macOS junk
 .DS_Store
 
+<<<<<<< HEAD
 # Ignore Python junk
 .ipynb_checkpoints
 
+=======
+>>>>>>> 729a0c7c0fb01eb034fe99e2a0601f5d82b3512c
 # Folders to Ignore
 DATA/
 OUTPUT/
