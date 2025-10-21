@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[11]:
 
 
 # ============================================================
@@ -208,21 +208,14 @@ class UnstructuredModelData_Class:
         print(f"   Static File:  {os.path.basename(self.staticDataFilePath)}")
         print("=========================","\n")
 
-# ##############
-# #Example Run
-# ##############
+# # ##############
+# # #Example Run
+# # ##############
 
 # #MAIN DIRECTORIES
-# def GetDirectories():
-#     mainDirectory='/glade/u/home/aroseman/Projects/Regional-MPAS-Project'
-#     mainScratchDirectory='/glade/derecho/scratch/aroseman/Projects/Regional-MPAS-Project'
-#     scratchDirectory = os.path.join(mainScratchDirectory,"MPAS_Atmosphere_8.3.0")
-    
-#     mainCodeDirectory=os.path.join(mainDirectory,"Code/CodeFiles/")
-#     codeDirectory=os.getcwd()
-#     return mainDirectory,mainCodeDirectory,scratchDirectory,codeDirectory
-
-# [mainDirectory,mainCodeDirectory,scratchDirectory,codeDirectory] = GetDirectories()
+# mainDirectory='/glade/u/home/aroseman/Projects/Regional-MPAS-Project'
+# mainScratchDirectory='/glade/derecho/scratch/aroseman/Projects/Regional-MPAS-Project'
+# scratchDirectory = os.path.join(mainScratchDirectory,"MPAS_Atmosphere_8.3.0")
 
 # RunType = ("TRACER","MOIST","NSSL")
 # SimulationTime = ("2022-06-30","2022-07-03")
@@ -235,183 +228,202 @@ class UnstructuredModelData_Class:
 # # # ModelData.LoadCombinedData()
 # # # ModelData.LoadCombinedData_diag()
 # # ModelData.GetDataTimestep(t=100)
-# # ModelData.GetDataTimestep(t=100)
 # # ModelData.GetDataTimestep(t=100,varName='w')
 # # ModelData.GetDataTimestep_diag(t=100)
 # # ModelData.GetDataTimestep_diag(t=100,varName='refl10cm')
 
 
-# In[ ]:
+# In[47]:
 
 
 # ============================================================
-# StructuredModelData_Class
+# StructuredModelData_Class 
+# (for MPAS Cartesian lat-lon data, converted from original unstructured data using convert_mpas code)
 # ============================================================
 
-#Libraries
 import os
+import glob
 from datetime import datetime, timedelta
-
 import xarray as xr
-import uxarray as ux
 
 class StructuredModelData_Class:
     def __init__(self, mainDirectory, scratchDirectory, RunType, SimulationTime):
-        #DIRECTORIES
+        # DIRECTORIES
         self.mainDirectory = mainDirectory
         self.scratchDirectory = scratchDirectory
 
-        #SIMULATION INFO
+        # SIMULATION INFO
         self.region, self.case, self.mpType = RunType
         self.SimulationTime = SimulationTime
-        
 
-        #GET DATA
-        # Initialize directories and metadata
-        [self.dataDirectory, 
-         self.filePath, 
-         self.Resolution, 
-         self.tResolution] = self.GetDataFilePath()
+        # === DATA DIRECTORIES ===
+        (self.dataDirectory,
+         self.fileList,
+         self.Resolution,
+         self.tResolution) = self.GetDataDirectories()
 
-        # Get diagnostic data
-        self.filePath_diag = self.GetDataFilePath_diag()
+        self.fileList_diag = self.GetDataDirectories_diag()
 
-        # Get timeStrings
-        self.timeStrings = self.GetTimeStrings(self.SimulationTime,self.tResolution)
+        # === STATIC DATA ===
+        (self.staticData,
+         self.staticDataFilePath,
+         self.staticVariables) = self.GetStaticData(self.dataDirectory)
 
-        # # Load Variable Names
-        # self.dataVariables,self.dataVariables_diag = self.GetVariableNames()
+        # === TIME STRINGS ===
+        self.timeStrings = self.GetTimeStrings(self.SimulationTime, self.tResolution)
 
-        # Print summary
+        # === COORDINATES ===
+        self.GetCoordinates()
+
+        # === SUMMARY ===
         self.Summary()
 
     # ============================================================
-    # ========== Data Loading Functions ==========
+    # Data Loading and Paths
     # ============================================================
 
-    def GetDataFilePath(self):
-        """Return directory paths and metadata based on simulation number."""
+    def GetDataDirectories(self):
+        """Return main directory and list of history files."""
         dataDirectory = os.path.join(self.scratchDirectory, self.region, 
-                                 self.case, "MPAS-Model_"+self.mpType)
-        Resolution, tResolution= '20-1km', '15mins'
+                                     self.case, f"MPAS-Model_{self.mpType}")
+        Resolution, tResolution = '20-1km', '15mins'
 
-        filePath =  os.path.join(dataDirectory, "backup_RESTART2", "history_cartesian", "history.latlon.nc")
-        return dataDirectory, filePath, Resolution, tResolution
+        filePattern = os.path.join(dataDirectory, "backup_RESTART2",
+                                   "history_cartesian", "history.*.latlon.nc")
+        fileList = sorted(glob.glob(filePattern))
 
-    def GetDataFilePath_diag(self):
-        """Return directory paths and metadata based on simulation number."""
+        return dataDirectory, fileList, Resolution, tResolution
+
+    def GetDataDirectories_diag(self):
         dataDirectory = os.path.join(self.scratchDirectory, self.region, 
-                                 self.case, "MPAS-Model_"+self.mpType)
-        Resolution, tResolution= '20-1km', '15mins'
+                                     self.case, f"MPAS-Model_{self.mpType}")
+        filePattern = os.path.join(dataDirectory, "backup_RESTART2",
+                                   "diag_cartesian", "diag.*.latlon.nc")
+        return sorted(glob.glob(filePattern))
+        
+    def GetStaticData(self, dataDirectory):
+        """Open static data using xarray."""
+        filePattern = os.path.join(dataDirectory, "backup_RESTART2",
+                                   "history_cartesian", "TRACER_regional5250_scaled3_x20.835586.static.latlon.nc")
+        staticDataFilePath = glob.glob(filePattern)[0]
+        staticData = xr.open_dataset(staticDataFilePath, engine="netcdf4")
+        staticVariables = list(staticData.data_vars)
+        return staticData, staticDataFilePath, staticVariables
 
-        filePath_diag =  os.path.join(dataDirectory, "backup_RESTART2", "diag_cartesian", "diag.latlon.nc")
+    def GetVariableNames(self): 
+        first_file = self.fileList[0]
+        with xr.open_dataset(first_file, engine="netcdf4") as ds:
+            dataVariables = list(ds.data_vars.keys())
 
-        return filePath_diag
+        first_file = self.fileList_diag[0]
+        with xr.open_dataset(first_file, engine="netcdf4") as ds:
+            dataVariables_diag = list(ds.data_vars.keys())
+            
+        return dataVariables, dataVariables_diag
 
-    def GetTimeStrings(self, SimulationTime,tResolution):
+    def GetCoordinates(self):
+        first_file = self.fileList[0]
+        with xr.open_dataset(first_file, engine="netcdf4") as ds:
+            self.latitude= ds['latitude'].data
+            self.longitude = ds['longitude'].data
+            self.nVertLevels = ds['nVertLevels'].data
+            self.nVertLevelsP1 = ds['nVertLevelsP1'].data
+            self.nSoilLevels = ds['nSoilLevels'].data
+            
+        self.coordinateList = ["latitude", "longitude", "nVertLevels", "nVertLevelsP1", "nSoilLevels"]
+
+    # ============================================================
+    # Time Control
+    # ============================================================
+
+    def GetTimeStrings(self, SimulationTime, tResolution):
         fmt_date = "%Y-%m-%d"
         start = datetime.strptime(SimulationTime[0], fmt_date)
         end = datetime.strptime(SimulationTime[1], fmt_date)
-    
-        # Determine time delta
+
         if "min" in tResolution:
-            minutes = int(tResolution.replace("mins", "").replace("min", ""))
-            delta = timedelta(minutes=minutes)
+            delta = timedelta(minutes=int(tResolution.replace("mins", "").replace("min", "")))
         elif "hr" in tResolution:
-            hours = int(tResolution.replace("hrs", "").replace("hr", ""))
-            delta = timedelta(hours=hours)
+            delta = timedelta(hours=int(tResolution.replace("hrs", "").replace("hr", "")))
         else:
             raise ValueError(f"Unsupported tResolution format: {tResolution}")
-    
-        # Generate sequence of times
+
         fmt_out = "%Y-%m-%d_%H.%M.%S"
         times = []
         t = start
         while t <= end:
             times.append(t.strftime(fmt_out))
             t += delta
-    
         return times
 
-    def GetVariableNames(self):
-        first_file = self.filePath
-    
-        with xr.open_dataset(first_file, engine="netcdf4", decode_times=False, chunks={}) as ds:
-            dataVariables = list(ds.data_vars.keys())
-
-
-        first_file_diag = self.filePath_diag
-        with xr.open_dataset(first_file_diag, engine="netcdf4", decode_times=False, chunks={}) as ds:
-            dataVariables_diag = list(ds.data_vars.keys())
-        return dataVariables, dataVariables_diag
-    
-    # # ============================================================
-    # # ========== On-demand Variable Access ==========
-    # # ============================================================
-
-    def GetData(self, t=None, varName=None):
-        data = xr.open_dataset(self.filePath, engine="netcdf4", decode_times=False, chunks={})
-        print(f"Opened data from {self.filePath}")
-
-        if t is not None:
-            data = data.isel(time=t)
-            print(f"Getting time {self.timeStrings[t]}")
-        if varName is not None:
-            print(f"Getting variable {varName}")
-            return data[varName]
-        else: 
-            return data
-
-    def GetData_diag(self, t=None, varName=None):
-        data = xr.open_dataset(self.filePath_diag, engine="netcdf4", decode_times=False, chunks={})
-        print(f"Opened data from {self.filePath_diag}")
-
-        if t is not None:
-            data = data.isel(time=t)
-            print(f"Getting time {self.timeStrings[t]}")
-        if varName is not None:
-            print(f"Getting variable {varName}")
-            return data[varName]
-        else: 
-            return data
-    
     # ============================================================
-    # === Information ========================================
+    # Data Access
     # ============================================================
-    
+
+    def GetDataTimestep(self, t, varName=None):
+        """Load one timestep (index or string)."""
+        if isinstance(t, int):
+            filePath = self.fileList[t]
+        elif isinstance(t, str):
+            fileIndex = self.timeStrings.index(t)
+            filePath = self.fileList[fileIndex]
+        else:
+            raise ValueError("t must be int (index) or str (time string).")
+
+        data = xr.open_dataset(filePath, engine="netcdf4", decode_times=False)
+        print(f"Opened history file: {filePath}")
+
+        if varName:
+            return data[varName].isel(Time=0)
+        else:
+            return data.isel(Time=0)
+
+    def GetDataTimestep_diag(self, t, varName=None):
+        if isinstance(t, int):
+            filePath = self.fileList_diag[t]
+        elif isinstance(t, str):
+            fileIndex = self.timeStrings.index(t)
+            filePath = self.fileList_diag[fileIndex]
+        else:
+            raise ValueError("t must be int (index) or str (time string).")
+
+        data = xr.open_dataset(filePath, engine="netcdf4", decode_times=False)
+        print(f"Opened diag file: {filePath}")
+
+        if varName:
+            return data[varName].isel(Time=0)
+        else:
+            return data.isel(Time=0)
+
+    # ============================================================
+    # Summary
+    # ============================================================
+
     def Summary(self):
-        """Print a clear summary of the MPAS unstructured model configuration."""
-        print("\n=== MPAS Unstructured Model Data Summary ===")
+        print("\n=== MPAS Structured (lat-lon) Model Data Summary ===")
         print(f" Region:         {self.region}")
         print(f" Case:           {self.case}")
         print(f" Microphysics:   {self.mpType}")
         print(f" Resolution:     {self.Resolution}")
         print(f" Time Step:      {self.tResolution}")
         print(f" Time Range:     {self.SimulationTime[0]} to {self.SimulationTime[1]}")
-        print(f" # Time Steps:   {len(self.timeStrings)}")
+        print(f" Coordinates:    {self.coordinateList}")
         print(f" # History Files:{len(self.fileList)}")
-    
-        print(f"\nData Directory:")
-        print(f"   {self.dataDirectory}")
-        print(f"   History File:  {self.filePath}")
-        print(f"   Diagnostic File:  {self.filePath_diag}")
-        print("=========================","\n")
+        print(f" # Diag Files:   {len(self.fileList_diag)}")
+        print(f" # Time Steps:   {len(self.timeStrings)}")
+        print(f" Data Directory: {self.dataDirectory}")
+        print(f" Static File:    {os.path.basename(self.staticDataFilePath)}")
+        print("=============================================\n")
 
 # ##############
 # #Example Run
 # ##############
 
 # #MAIN DIRECTORIES
-# def GetDirectories():
-#     mainDirectory='/glade/u/home/aroseman/Projects/Regional-MPAS-Project'
-#     mainScratchDirectory='/glade/derecho/scratch/aroseman/Projects/Regional-MPAS-Project'
-#     scratchDirectory = os.path.join(mainScratchDirectory,"MPAS_Atmosphere_8.3.0")
-    
-#     mainCodeDirectory=os.path.join(mainDirectory,"Code/CodeFiles/")
-#     codeDirectory=os.getcwd()
-#     return mainDirectory,mainCodeDirectory,scratchDirectory,codeDirectory
 
-# [mainDirectory,mainCodeDirectory,scratchDirectory,codeDirectory] = GetDirectories()
+# mainDirectory='/glade/u/home/aroseman/Projects/Regional-MPAS-Project'
+# mainScratchDirectory='/glade/derecho/scratch/aroseman/Projects/Regional-MPAS-Project'
+# scratchDirectory = os.path.join(mainScratchDirectory,"MPAS_Atmosphere_8.3.0")
 
 # RunType = ("TRACER","MOIST","NSSL")
 # SimulationTime = ("2022-06-30","2022-07-03")
@@ -421,10 +433,8 @@ class StructuredModelData_Class:
 # # #Example Usage
 # # ################
 # # [dataVariables, dataVariables_diag] = ModelData.GetVariableNames()
-# # ModelData.GetData()
-# # ModelData.GetData(t=100)
-# # ModelData.GetData(t=100,varName='w')
-# # ModelData.GetData_diag()
-# # ModelData.GetData_diag(t=100)
-# # ModelData.GetData_diag(t=100,varName='refl10cm')
+# # ModelData.GetDataTimestep(t=100)
+# # ModelData.GetDataTimestep(t=100,varName='w')
+# # ModelData.GetDataTimestep_diag(t=100)
+# # ModelData.GetDataTimestep_diag(t=100,varName='refl10cm')
 
