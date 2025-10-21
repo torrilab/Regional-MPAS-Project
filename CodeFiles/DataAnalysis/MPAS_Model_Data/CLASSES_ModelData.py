@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[57]:
+# In[59]:
 
 
 # ============================================================
@@ -44,9 +44,9 @@ class StructuredModelData_Class:
         self.GetCoordinates()
 
         # === COORDINATES ===
-        self.unitsDictionary = self.GetUnits(data)
-        self.unitsDictionary_diag = self.GetUnits(data_diag)
-        self.unitsDictionary_static = self.GetUnits(ModelData.staticData)
+        self.unitsDictionary = self.GetUnits(self.GetDataTimestep(t=0))
+        self.unitsDictionary_diag = self.GetUnits(self.GetDataTimestep_diag(t=0))
+        self.unitsDictionary_static = self.GetUnits(self.staticData)
 
         # === SUMMARY ===
         self.Summary()
@@ -216,34 +216,28 @@ class StructuredModelData_Class:
         print(f" Static File:    {os.path.basename(self.staticDataFilePath)}")
         print("=============================================\n")
 
-##############
-#Example Run
-##############
+# ##############
+# #Example Run
+# ##############
 
-#MAIN DIRECTORIES
+# #MAIN DIRECTORIES
 
-mainDirectory='/glade/u/home/aroseman/Projects/Regional-MPAS-Project'
-mainScratchDirectory='/glade/derecho/scratch/aroseman/Projects/Regional-MPAS-Project'
-scratchDirectory = os.path.join(mainScratchDirectory,"MPAS_Atmosphere_8.3.0")
+# mainDirectory='/glade/u/home/aroseman/Projects/Regional-MPAS-Project'
+# mainScratchDirectory='/glade/derecho/scratch/aroseman/Projects/Regional-MPAS-Project'
+# scratchDirectory = os.path.join(mainScratchDirectory,"MPAS_Atmosphere_8.3.0")
 
-RunType = ("TRACER","MOIST","NSSL")
-SimulationTime = ("2022-06-30","2022-07-03")
-ModelData = StructuredModelData_Class(mainDirectory, scratchDirectory, RunType, SimulationTime)
+# RunType = ("TRACER","MOIST","NSSL")
+# SimulationTime = ("2022-06-30","2022-07-03")
+# ModelData = StructuredModelData_Class(mainDirectory, scratchDirectory, RunType, SimulationTime)
 
-# ################
-# #Example Usage
-# ################
-# [dataVariables, dataVariables_diag] = ModelData.GetVariableNames()
-# ModelData.GetDataTimestep(t=100)
-# ModelData.GetDataTimestep(t=100,varName='w')
-# ModelData.GetDataTimestep_diag(t=100)
-# ModelData.GetDataTimestep_diag(t=100,varName='refl10cm')
-
-
-# In[58]:
-
-
-ModelData.fileList
+# # ################
+# # #Example Usage
+# # ################
+# # [dataVariables, dataVariables_diag] = ModelData.GetVariableNames()
+# # ModelData.GetDataTimestep(t=100)
+# # ModelData.GetDataTimestep(t=100,varName='w')
+# # ModelData.GetDataTimestep_diag(t=100)
+# # ModelData.GetDataTimestep_diag(t=100,varName='refl10cm')
 
 
 # In[ ]:
