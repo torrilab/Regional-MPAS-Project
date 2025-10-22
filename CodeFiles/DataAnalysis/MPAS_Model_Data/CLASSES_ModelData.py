@@ -318,15 +318,6 @@ class DataOperator_Class:
         return dataSubset, lat, lon
 
     @staticmethod
-    def GetVariable(ModelData, varName,data,data_diag):
-        if varName in ModelData.unitsDictionary:
-            return data[varName]
-        elif varName in ModelData.unitsDictionary_diag:
-            return data_diag[varName]
-        elif varName == "greenfrac":
-            return ModelData.staticData["greenfrac"].isel(nMonths=6)
-
-    @staticmethod
     def GetVariable_Subset(ModelData, varName,data,data_diag):  
         variable = DataOperator_Class.GetVariable(ModelData, varName,data,data_diag)
         [latCenter,lonCenter] = DataOperator_Class.LatLonBoundingBox_Center(campaign="TRACER")
@@ -337,7 +328,7 @@ class DataOperator_Class:
         return variableSubset, lat, lon
 
     @staticmethod
-    def GetData_Subset(t):  
+    def GetData_Subset(ModelData,t):  
         data = ModelData.GetDataTimestep(t,printout=False)
         data_diag = ModelData.GetDataTimestep_diag(t,printout=False)
     
@@ -345,18 +336,19 @@ class DataOperator_Class:
         [latBounds, lonBounds] = DataOperator_Class.LatLonBoundingBox_Calculation(latCenter, lonCenter, radius_km=1000)
         dataSubset, lat, lon = DataOperator_Class.LatLonBoundingBox_Subset(data,latBounds, lonBounds)
         dataSubset_diag, _, _ = DataOperator_Class.LatLonBoundingBox_Subset(data_diag,latBounds, lonBounds)
+        dataSubset_static, _, _ = DataOperator_Class.LatLonBoundingBox_Subset(ModelData.staticData,latBounds, lonBounds)
     
         # Lon, Lat = np.meshgrid(lon, lat) #not actually needed to plot
-        return dataSubset, dataSubset_diag, lat, lon, data, data_diag
+        return dataSubset, dataSubset_diag, dataSubset_static, lat, lon, data, data_diag
 
     @staticmethod
-    def GetData_Variable(ModelData, data,data_diag, varName):
+    def GetData_Variable(ModelData, data,data_diag,data_static, varName):
         if varName in ModelData.unitsDictionary:
             return data[varName]
         elif varName in ModelData.unitsDictionary_diag:
             return data_diag[varName]
         elif varName == "greenfrac":
-            return ModelData.staticData["greenfrac"].isel(nMonths=6)
+            return data_static[varName].isel(nMonths=6)
     
 
 

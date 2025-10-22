@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[ ]:
+
+
 # ============================================================
 # AnimationPlotting_Class 
 # (for MPAS Cartesian lat-lon data, converted from original unstructured data using convert_mpas code)
@@ -30,15 +36,12 @@ class AnimationPlotting_Class:
 
     @staticmethod
     def CreateAnimation(ModelData, DirectoryManager,
-                        varName, 
-                        start_t, end_t, fps=2,
-                        outputDirectory=outputDirectory):
+                        outputDirectory, plottingFilePath, GetVariableOutputFile,
+                        varName, start_t, end_t,
+                        fps=2):
         """
         Create an animation by loading PNG files (pre-made plots) in sequence.
         """
-    
-        # Setting up output file
-        plottingFilePath = GetPlottingFileName(varName,outputDirectory,ModelData)
     
         # --- Create figure ---
         fig, ax = plt.subplots(figsize=(12, 8))
@@ -99,3 +102,4 @@ class AnimationPlotting_Class:
     
         # Write the GIF as an MP4 file
         gif_clip.write_videofile(output_file, codec="libx264", bitrate=bitrate)
+

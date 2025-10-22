@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -A UHWM0066
-#PBS -N aroseman_python
+#PBS -N python
 #PBS -q main
 #PBS -l job_priority=economy
 #PBS -l walltime=02:00:00
@@ -18,7 +18,7 @@ export PYTHONUNBUFFERED=TRUE
 mkdir -p job_out
 
 # --- Convert and Run ---
-NOTEBOOK="SurfaceVariableAnimation_Unstructured.ipynb"
+NOTEBOOK="SurfaceVariableAnimation_Structured.ipynb"
 SCRIPT="${NOTEBOOK%.ipynb}.py"
 
 jupyter nbconvert --to script "$NOTEBOOK"
