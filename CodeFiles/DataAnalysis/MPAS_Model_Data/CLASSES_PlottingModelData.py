@@ -14,7 +14,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter
 from PIL import Image
-from moviepy import VideoFileClip, vfx ## pip install moviepy
 
 class AnimationPlotting_Class:
     
@@ -90,6 +89,7 @@ class AnimationPlotting_Class:
         """
         Convert a GIF to MP4 using moviepy.
         """
+        from moviepy import VideoFileClip, vfx ## pip install moviepy
     
         # Load the GIF file
         gif_clip = VideoFileClip(input_file)
