@@ -120,6 +120,23 @@ class StructuredModelData_Class:
             unitsDictionary[var] = attrs.get("units", "—")
         return unitsDictionary
 
+    def GetUnits_Specific(self, varName):
+        """
+        Return the units string for a specific variable name.
+        """
+        # If variable name includes '+', use the first component
+        if "+" in varName:
+            varName = varName.split("+")[0].strip()
+        
+        # Search through the available unit dictionaries
+        for d in (self.unitsDictionary,
+                  self.unitsDictionary_diag,
+                  self.unitsDictionary_static):
+            if varName in d:
+                return d[varName]
+        # Not found
+        return None
+
 
     # ============================================================
     # Time Control
@@ -350,11 +367,14 @@ class DataOperator_Class:
         # Lon, Lat = np.meshgrid(lon, lat) #not actually needed to plot
         return dataSubset, dataSubset_diag, dataSubset_static, lat, lon, data, data_diag
 
+    @staticmethod
+    def GetOutputFilePath(ModelData, outputDirectory, fileName):
+        folderName = f"{ModelData.region}_{ModelData.case}_{ModelData.mpType}"    
+        filePath = DirectoryManager.GetOutputFile(outputDirectory, folderName, fileName)
+        return filePath
 
-    
 
-
-# In[ ]:
+# In[1]:
 
 
 # # ============================================================

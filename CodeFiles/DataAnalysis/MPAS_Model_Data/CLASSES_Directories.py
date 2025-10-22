@@ -23,6 +23,7 @@ class DirectoryManager_Class:
         self.scratchDirectory = os.path.join(self.mainScratchDirectory, "MPAS_Atmosphere_8.3.0")
 
         self.mainOutputDirectory = os.path.join(self.mainDirectory, "Code", "OUTPUT")
+        self.mainOutputPlottingDirectory = os.path.join(self.mainDirectory, "Code", "PLOTTING")
         self.mainCodeDirectory = os.path.join(self.mainDirectory, "Code", "CodeFiles")
         self.codeDirectory = os.getcwd()
 
@@ -41,6 +42,18 @@ class DirectoryManager_Class:
         outputDirectory = os.path.join(directory, codeType, dataType)
         os.makedirs(outputDirectory, exist_ok=True)
         return outputDirectory
+
+    def GetOutputPlottingDirectory(self, plottingType, dataType, directory=None):
+        """
+        Creates (if needed) and returns an output directory path
+        for a given plottingType and dataType within the plotting directory.
+        """
+        if directory is None:
+            directory = self.mainOutputPlottingDirectory
+
+        plottingDirectory = os.path.join(directory, plottingType, dataType)
+        os.makedirs(plottingDirectory, exist_ok=True)
+        return plottingDirectory
 
     def GetOutputFilePath(self, outputDirectory, folderName):
         """
@@ -70,6 +83,7 @@ class DirectoryManager_Class:
         print(f" Main Scratch Directory:   {self.mainScratchDirectory}")
         print(f" Scratch Directory:        {self.scratchDirectory}")
         print(f" Main Output Directory:    {self.mainOutputDirectory}")
+        print(f" Main Output Plotting Directory:    {self.mainOutputPlottingDirectory}")
         print(f" Main Code Directory:      {self.mainCodeDirectory}")
         print(f" Current Code Directory:   {self.codeDirectory}")
         print("============================================================\n")
