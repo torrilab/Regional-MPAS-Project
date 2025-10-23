@@ -81,8 +81,7 @@ class AnimationPlotting_Class:
         ani.save(plottingFilePath, writer=writer)
         plt.close(fig)
         print(f"Animation saved to: {plottingFilePath}")
-
-    
+   
     # GIF TO MP4 FUNCTION (MoviePy v2.x compatible)
     @staticmethod
     def convertGIFtoMP4(input_file, output_file, fps, speed=1, bitrate='750k'):
@@ -90,6 +89,7 @@ class AnimationPlotting_Class:
         Convert a GIF to MP4 using moviepy.
         """
         from moviepy import VideoFileClip, vfx ## pip install moviepy
+        from moviepy.video.fx import MultiplySpeed
     
         # Load the GIF file
         gif_clip = VideoFileClip(input_file)
@@ -98,8 +98,150 @@ class AnimationPlotting_Class:
         if fps:
             gif_clip = gif_clip.with_fps(fps)  # <-- updated method name
         if speed != 1.0:
-            gif_clip = gif_clip.fx(vfx.speedx, speed)  # < 1 slower, > 1 faster
+            # gif_clip = gif_clip.fx(vfx.speedx, speed) old version
+            gif_clip = MultiplySpeed(speed).apply(gif_clip) # < 1 slower, > 1 faster
     
         # Write the GIF as an MP4 file
         gif_clip.write_videofile(output_file, codec="libx264", bitrate=bitrate)
+
+        gif_clip.close()
+
+
+# In[ ]:
+
+
+# ============================================================
+# RadarPlotting_Class 
+# ============================================================
+
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import numpy as np
+
+class RadarPlotting_Class:
+
+    @staticmethod
+    def GetReflectivityColormap(show=False):
+        #colormap based on colorbar included here: https://www.noaa.gov/jetstream/reflectivity
+        
+        # Reflectivity bins (dBZ)
+        bounds = [-35, 0, 20, 40, 50, 65, 85]
+        
+        # Define color transitions (light→dark within each range)
+        segment_colors = [
+            ("#f7f7f7", "#a8a8a8"),   # -35–0  grey
+            ("#b3caff", "#0033cc"),   # 0–20   blue
+            ("#99ff99", "#006600"),   # 20–40  green
+            ("#ffe680", "#ff9900"),   # 40–50  yellow–orange
+            ("#ff6666", "#990000"),   # 50–65  red
+            ("#e6b3ff", "#660066"),   # 65–85  purple
+        ]
+        
+        # --- Corrected logic for building the continuous colormap ---
+        
+        # Normalize the bounds to the 0-1 range
+        normalized_bounds = (np.array(bounds) - bounds[0]) / (bounds[-1] - bounds[0])
+        
+        # Initialize the dictionary for LinearSegmentedColormap
+        cdict = {'red': [], 'green': [], 'blue': []}
+        
+        # Build the segment dictionary
+        for i, (c1_hex, c2_hex) in enumerate(segment_colors):
+            # Convert hex colors to RGB tuples
+            c1_rgb = mcolors.to_rgb(c1_hex)
+            c2_rgb = mcolors.to_rgb(c2_hex)
+            
+            # Get the normalized start and end points for this segment
+            x_start = normalized_bounds[i]
+            x_end = normalized_bounds[i+1]
+            
+            # Define the red, green, and blue transitions for this segment
+            cdict['red'].extend([(x_start, c1_rgb[0], c1_rgb[0]), (x_end, c2_rgb[0], c2_rgb[0])])
+            cdict['green'].extend([(x_start, c1_rgb[1], c1_rgb[1]), (x_end, c2_rgb[1], c2_rgb[1])])
+            cdict['blue'].extend([(x_start, c1_rgb[2], c1_rgb[2]), (x_end, c2_rgb[2], c2_rgb[2])])
+        
+        # Create the continuous gradient colormap
+        cmap = mcolors.LinearSegmentedColormap("radar_reflectivity", cdict)
+        norm = mcolors.Normalize(vmin=bounds[0], vmax=bounds[-1]+2)
+        levels=np.linspace(-35, 85, 200)
+        ticks = np.arange(-35, 85+1, 5)   # from -35 to 85 inclusive
+        
+        if show:
+            # --- Plotting the result ---
+            
+            # Create dummy data for demonstration
+            # Replace this with your actual data 'a'
+            a = np.linspace(bounds[0], bounds[-1], 256).reshape(16, 16)
+            
+            plt.figure(figsize=(8, 2))
+            # The `imshow` function is typically better for showing a colormap directly,
+            # as `contourf` can introduce artificial banding depending on `levels`.
+            im = plt.imshow(a, cmap=cmap, norm=norm, aspect='auto', interpolation='nearest')
+            
+            cbar = plt.colorbar(im, ticks=bounds, orientation='horizontal', label='Reflectivity (dBZ)')
+            cbar.ax.set_xticklabels(['-35', '0', '20', '40', '50', '65', '85'])
+            plt.title('Radar Reflectivity Colorbar with Smooth Transitions')
+            plt.show()
+    
+        return cmap, norm, levels, ticks
+    
+    @staticmethod
+    def FormatReflectivityColorbar(cbar, ticks, orientation='vertical', show_labels=True):
+        """
+        Format a WSR-88D-style reflectivity colorbar with optional category labels.
+        """
+        # Main reflectivity category edges and text
+        category_edges = [-35, 0, 20, 40, 50, 65, 85]
+        category_labels = [
+            "Extremely light\n(drizzle/snow)",
+            "Very light\nprecip/clutter",
+            "Light\nprecipitation",
+            "Moderate\nprecipitation",
+            "Heavy\nprecip/some hail",
+            "Extremely heavy\n(water-coated hail)"
+        ]
+    
+        # Set ticks and numeric labels
+        cbar.set_ticks(ticks)
+        if orientation == 'vertical':
+            cbar.ax.set_yticklabels([str(t) for t in ticks])
+        else:
+            cbar.ax.set_xticklabels([str(t) for t in ticks])
+    
+        # Add descriptive category labels (to the left of colorbar)
+        if show_labels:
+            ax = cbar.ax
+            for i, label in enumerate(category_labels):
+                if orientation == 'vertical':
+                    # Place text slightly to the *left* of the colorbar
+                    ax.text(-0.4, (category_edges[i] + category_edges[i + 1]) / 2,
+                            label,
+                            transform=ax.get_yaxis_transform(),
+                            fontsize=7.5,
+                            va='center',
+                            ha='right')
+                else:
+                    ax.text((category_edges[i] + category_edges[i + 1]) / 2, -0.2,
+                            label,
+                            transform=ax.get_xaxis_transform(),
+                            fontsize=7.5,
+                            va='top',
+                            ha='center')
+    
+        # Add main label (reflectivity units)
+        cbar.set_label("Reflectivity (dBZ)", fontsize=12)
+
+# #EXAMPLE IMPORTING
+# #Importing PlottingModelData Class
+# sys.path.append(os.path.join(DirectoryManager.mainCodeDirectory,"DataAnalysis","MPAS_Model_Data"))
+# from CLASSES_PlottingModelData import RadarPlotting_Class
+        
+# #EXAMPLE USAGE
+# cmap, norm, levels, ticks = RadarPlotting_Class.GetReflectivityColormap()
+
+# plot = axis.contourf(time, pressure_profile, output.T, 
+#                     levels=levels, cmap=cmap, norm=norm, 
+#                     extend='both') #contour plot
+# cbar = axis.figure.colorbar(plot, ax=axis, pad=0.18, orientation='vertical')
+# RadarPlotting_Class.FormatReflectivityColorbar(cbar, ticks, orientation='vertical', show_labels=True)
 

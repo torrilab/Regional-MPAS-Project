@@ -368,7 +368,7 @@ class DataOperator_Class:
         return dataSubset, dataSubset_diag, dataSubset_static, lat, lon, data, data_diag
 
     @staticmethod
-    def GetOutputFilePath(ModelData, outputDirectory, fileName):
+    def GetOutputFilePath(ModelData, DirectoryManager, outputDirectory, fileName):
         folderName = f"{ModelData.region}_{ModelData.case}_{ModelData.mpType}"    
         filePath = DirectoryManager.GetOutputFile(outputDirectory, folderName, fileName)
         return filePath
