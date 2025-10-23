@@ -61,7 +61,7 @@ class StructuredModelData_Class:
                                      self.case, f"MPAS-Model_{self.mpType}")
         Resolution, tResolution = '20-1km', '15mins'
 
-        filePattern = os.path.join(dataDirectory, "backup_RESTART2",
+        filePattern = os.path.join(dataDirectory, "backup_20-1km_56nz",
                                    "history_cartesian", "history.*.latlon.nc")
         fileList = sorted(glob.glob(filePattern))
 
@@ -70,13 +70,13 @@ class StructuredModelData_Class:
     def GetDataDirectories_diag(self):
         dataDirectory = os.path.join(self.scratchDirectory, self.region, 
                                      self.case, f"MPAS-Model_{self.mpType}")
-        filePattern = os.path.join(dataDirectory, "backup_RESTART2",
+        filePattern = os.path.join(dataDirectory, "backup_20-1km_56nz",
                                    "diag_cartesian", "diag.*.latlon.nc")
         return sorted(glob.glob(filePattern))
         
     def GetStaticData(self, dataDirectory):
         """Open static data using xarray."""
-        filePattern = os.path.join(dataDirectory, "backup_RESTART2",
+        filePattern = os.path.join(dataDirectory, "backup_20-1km_56nz",
                                    "history_cartesian", "TRACER_regional5250_scaled3_x20.835586.static.latlon.nc")
         staticDataFilePath = glob.glob(filePattern)[0]
         staticData = xr.open_dataset(staticDataFilePath, engine="netcdf4")
@@ -436,7 +436,7 @@ class DataOperator_Class:
 #                                  self.case, "MPAS-Model_"+self.mpType)
 #         Resolution, tResolution= '20-1km', '15mins'
 
-#         filePattern =  os.path.join(dataDirectory, "backup_RESTART2", "history.*.nc")
+#         filePattern =  os.path.join(dataDirectory, "backup_20-1km_56nz", "history.*.nc")
 #         fileList = sorted(glob.glob(filePattern))
 
 #         return dataDirectory, fileList, Resolution, tResolution
@@ -447,7 +447,7 @@ class DataOperator_Class:
 #                                  self.case, "MPAS-Model_"+self.mpType)
 #         Resolution, tResolution= '20-1km', '15mins'
 
-#         filePattern =  os.path.join(dataDirectory, "backup_RESTART2", "diag.*.nc")
+#         filePattern =  os.path.join(dataDirectory, "backup_20-1km_56nz", "diag.*.nc")
 #         fileList_diag = sorted(glob.glob(filePattern))
 
 #         return fileList_diag
