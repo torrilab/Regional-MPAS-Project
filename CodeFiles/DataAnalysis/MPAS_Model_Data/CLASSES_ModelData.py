@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[59]:
+# In[4]:
 
 
 # ============================================================
@@ -61,7 +61,7 @@ class StructuredModelData_Class:
                                      self.case, f"MPAS-Model_{self.mpType}")
         Resolution, tResolution = '20-1km', '15mins'
 
-        filePattern = os.path.join(dataDirectory, "backup_20-1km_56nz",
+        filePattern = os.path.join(dataDirectory,
                                    "history_cartesian", "history.*.latlon.nc")
         fileList = sorted(glob.glob(filePattern))
 
@@ -70,13 +70,13 @@ class StructuredModelData_Class:
     def GetDataDirectories_diag(self):
         dataDirectory = os.path.join(self.scratchDirectory, self.region, 
                                      self.case, f"MPAS-Model_{self.mpType}")
-        filePattern = os.path.join(dataDirectory, "backup_20-1km_56nz",
+        filePattern = os.path.join(dataDirectory,
                                    "diag_cartesian", "diag.*.latlon.nc")
         return sorted(glob.glob(filePattern))
         
     def GetStaticData(self, dataDirectory):
         """Open static data using xarray."""
-        filePattern = os.path.join(dataDirectory, "backup_20-1km_56nz",
+        filePattern = os.path.join(dataDirectory,
                                    "history_cartesian", "TRACER_regional5250_scaled3_x20.835586.static.latlon.nc")
         staticDataFilePath = glob.glob(filePattern)[0]
         staticData = xr.open_dataset(staticDataFilePath, engine="netcdf4")
@@ -101,14 +101,13 @@ class StructuredModelData_Class:
             self.longitude = ds['longitude'].data
             self.nVertLevels = ds['nVertLevels'].data
             self.nVertLevelsP1 = ds['nVertLevelsP1'].data
-            self.nSoilLevels = ds['nSoilLevels'].data
 
             # self.Nlon #not sure if these vary for each variable
             # self.Nlat
             self.Nzc=len(self.nVertLevels)
             self.Nzf=len(self.nVertLevelsP1)
             
-        self.coordinateList = ["latitude", "longitude", "nVertLevels", "nVertLevelsP1", "nSoilLevels"]
+        self.coordinateList = ["latitude", "longitude", "nVertLevels", "nVertLevelsP1"]
 
     def GetUnits(self, data):
         """
@@ -347,7 +346,7 @@ class DataOperator_Class:
     def GetVariable_Subset(ModelData, data, data_diag, data_static, varName):  
         variable = DataOperator_Class.GetData_Variable(ModelData, data, data_diag, data_static, varName)
         [latCenter,lonCenter] = DataOperator_Class.LatLonBoundingBox_Center(campaign="TRACER")
-        [latBounds, lonBounds] = DataOperator_Class.LatLonBoundingBox_Calculation(latCenter, lonCenter, radius_km=1000)
+        [latBounds, lonBounds] = DataOperator_Class.LatLonBoundingBox_Calculation(latCenter, lonCenter, radius_km=500)
         variableSubset, lat, lon = DataOperator_Class.LatLonBoundingBox_Subset(variable,latBounds, lonBounds)
     
         # Lon, Lat = np.meshgrid(lon, lat) #not actually needed to plot
@@ -359,7 +358,7 @@ class DataOperator_Class:
         data_diag = ModelData.GetDataTimestep_diag(t,printout=False)
     
         [latCenter,lonCenter] = DataOperator_Class.LatLonBoundingBox_Center(campaign="TRACER")
-        [latBounds, lonBounds] = DataOperator_Class.LatLonBoundingBox_Calculation(latCenter, lonCenter, radius_km=1000)
+        [latBounds, lonBounds] = DataOperator_Class.LatLonBoundingBox_Calculation(latCenter, lonCenter, radius_km=500)
         dataSubset, lat, lon = DataOperator_Class.LatLonBoundingBox_Subset(data,latBounds, lonBounds)
         dataSubset_diag, _, _ = DataOperator_Class.LatLonBoundingBox_Subset(data_diag,latBounds, lonBounds)
         dataSubset_static, _, _ = DataOperator_Class.LatLonBoundingBox_Subset(ModelData.staticData,latBounds, lonBounds)
