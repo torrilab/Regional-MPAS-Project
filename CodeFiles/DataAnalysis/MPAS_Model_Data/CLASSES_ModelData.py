@@ -37,6 +37,11 @@ class StructuredModelData_Class:
          self.staticDataFilePath,
          self.staticVariables) = self.GetStaticData(self.dataDirectory)
 
+        # === INIT DATA ===
+        (self.initData, 
+         _, 
+         self.initVariables) = self.GetInitData(self.dataDirectory)
+
         # === TIME STRINGS ===
         self.timeStrings, self.Ntime = self.GetTimeStrings(self.SimulationTime, self.tResolution)
 
@@ -82,6 +87,15 @@ class StructuredModelData_Class:
         staticData = xr.open_dataset(staticDataFilePath, engine="netcdf4")
         staticVariables = list(staticData.data_vars)
         return staticData, staticDataFilePath, staticVariables
+
+    def GetInitData(self, dataDirectory):
+        """Open static data using xarray."""
+        filePattern = os.path.join(dataDirectory,
+                                   "history_cartesian", "TRACER_regional5250_scaled3_x20.835586.init.latlon.nc")
+        staticDataFilePath = glob.glob(filePattern)[0]
+        initData = xr.open_dataset(staticDataFilePath, engine="netcdf4")
+        initVariables = list(initData.data_vars)
+        return initData, staticDataFilePath, initVariables
 
     def GetVariableNames(self): 
         first_file = self.fileList[0]
