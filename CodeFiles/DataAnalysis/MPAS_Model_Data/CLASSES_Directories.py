@@ -9,6 +9,8 @@
 # ============================================================
 
 import os 
+import glob
+from datetime import datetime
 
 class DirectoryManager_Class:
     """
@@ -107,21 +109,37 @@ class DirectoryManager_Class:
         
         return fileList, filePathList
 
+    # def GetSortedFileListByTimestamp(self, filePattern):
+    #     """
+    #     Given a wildcard path like '.../u10_*.png', return list of full file paths
+    #     sorted by the timestamp encoded in the filename.
+    #     """
+    #     # Match files
+    #     matched_files = glob.glob(filePattern)
+    
+    #     # Extract timestamp from filename and sort
+    #     def extract_time(path):
+    #         filename = os.path.basename(path)
+    #         timestamp_str = filename.split('_', 1)[-1].replace('.png', '')
+    #         return datetime.strptime(timestamp_str, "%Y-%m-%d_%H.%M.%S")
+    
+    #     # Return sorted list
+    #     return sorted(matched_files, key=extract_time)
+
     def GetSortedFileListByTimestamp(self, filePattern):
-        """
-        Given a wildcard path like '.../u10_*.png', return list of full file paths
-        sorted by the timestamp encoded in the filename.
-        """
-        # Match files
+        import glob, os
+        from datetime import datetime
+    
         matched_files = glob.glob(filePattern)
     
-        # Extract timestamp from filename and sort
         def extract_time(path):
-            filename = os.path.basename(path)
-            timestamp_str = filename.split('_', 1)[-1].replace('.png', '')
+            filename = os.path.basename(path).replace(".png", "")
+            # ✅ Split from the right — handles extra underscores in varName
+            parts = filename.split("_")
+            # Expect something like: ["refl10cm", "1km", "2022-07-02", "01.30.00"]
+            timestamp_str = "_".join(parts[-2:])  # "2022-07-02_01.30.00"
             return datetime.strptime(timestamp_str, "%Y-%m-%d_%H.%M.%S")
     
-        # Return sorted list
         return sorted(matched_files, key=extract_time)
 
     def Summary(self):

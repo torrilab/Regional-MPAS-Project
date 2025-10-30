@@ -3,6 +3,27 @@
 
 # In[ ]:
 
+# ============================================================
+# FigurePlotting_Class 
+# ============================================================
+
+import matplotlib.pyplot as plt
+
+class FigurePlotting_Class:
+
+    #Figure Outputting
+    @staticmethod
+    def SaveUniformFigure(fig, outputFilePath, target_size=(1500, 500), dpi=100):
+        width_in, height_in = target_size[0]/dpi, target_size[1]/dpi
+        fig.set_size_inches(width_in, height_in)
+        fig.savefig(outputFilePath, dpi=dpi, bbox_inches="tight")
+        plt.close(fig)
+        print(f"Saved uniform image: {outputFilePath}")
+
+
+
+# In[ ]:
+
 
 # ============================================================
 # AnimationPlotting_Class 
