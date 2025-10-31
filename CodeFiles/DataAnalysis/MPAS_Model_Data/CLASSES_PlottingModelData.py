@@ -354,7 +354,7 @@ class RadarPlotting_Class:
                             ha='center')
     
         # Add main label (reflectivity units)
-        cbar.set_label("Reflectivity (dBZ)", fontsize=12)
+        cbar.set_label("Reflectivity (dBZ)", fontsize=10)
 
 # #EXAMPLE IMPORTING
 # #Importing PlottingModelData Class
