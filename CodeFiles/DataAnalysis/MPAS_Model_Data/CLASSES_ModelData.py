@@ -44,6 +44,7 @@ class StructuredModelData_Class:
 
         # === TIME STRINGS ===
         self.timeStrings, self.Ntime = self.GetTimeStrings(self.SimulationTime, self.tResolution)
+        self.simulationDates = sorted(set(t.split("_")[0] for t in self.timeStrings))
 
         # === COORDINATES ===
         self.GetCoordinates()
