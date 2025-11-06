@@ -28,9 +28,15 @@ conda activate npl
 export HDF5_USE_FILE_LOCKING=FALSE
 export PYTHONUNBUFFERED=TRUE
 
-# --- Move PBS .o and .e files into the job directory ---
-JobIDClean="${PBS_JOBID%%[*]*}"
-echo "Moving PBS output files for Job ${JobIDClean} into ${JOB_DIR}"
+# --- Convert and Run ---
+jupyter nbconvert --to script "$NOTEBOOK"
+python -u "$SCRIPT" > "${JOB_DIR}/${SCRIPT%.py}-${PBS_JOBID}.out" 2>&1
 
-mv -v "python_jobarray.o${JobIDClean}"* "${JOB_DIR}/"
-mv -v "python_jobarray.e${JobIDClean}"* "${JOB_DIR}/"
+# --- Move PBS .o and .e files into the job directory ---
+BaseJobID=$(echo "$PBS_JOBID" | sed -E 's/\[.*//; s/\..*//')    # e.g. 370036
+Index="${PBS_ARRAY_INDEX}"         # e.g. 1
+
+echo "Moving PBS output files into ${JOB_DIR}:"
+
+mv -v "python_jobarray.o${BaseJobID}.${Index}" "${JOB_DIR}/"
+mv -v "python_jobarray.e${BaseJobID}.${Index}" "${JOB_DIR}/"

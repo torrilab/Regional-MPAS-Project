@@ -209,10 +209,12 @@ class RadarData_ARM_Class:
     # ------------------------------------------------------------
     # Plotting Functions
     # ------------------------------------------------------------
-    def PlotReflectivity(self, axis, sweep=0, vmin=-35, vmax=60, cmap = plt.get_cmap('NWSRef')):
+    def PlotReflectivity(self, axis, sweep=0, vmin=-35, vmax=60):
         """Plot PPI reflectivity for the given sweep number."""
         if self.radar is None:
             raise ValueError("No radar data loaded. Run GetRadarData() first.")
+
+        cmap = plt.get_cmap('NWSRef')
 
         radarSweep, cartesian_coords  = self.GetRadarDataSweep(self.radar)
         radarSweep[radarSweep<=0]=np.nan
@@ -247,9 +249,9 @@ class RadarData_ARM_Class:
 
     def PlotGriddedReflectivity(self, 
                                 grid,data,axis, 
-                                z_index=4,xlim=(-40,40),ylim=(-40,40),
-                                cmap = plt.get_cmap('NWSRef')):
-        
+                                z_index=4,xlim=(-40,40),ylim=(-40,40)):
+
+        cmap = plt.get_cmap('NWSRef')
         z_height = grid.z['data'][z_index] / 1000.0  # km
         
         cplot =axis.pcolormesh(grid.x['data']/1000, grid.y['data']/1000, data[z_index,:,:],
