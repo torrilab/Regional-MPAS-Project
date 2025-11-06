@@ -17,6 +17,7 @@ import pandas as pd  # <-- MISSING
 import cartopy.crs as ccrs  # <-- MISSING
 import cartopy.feature as cfeature  # <-- MISSING
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 class RadarPlotting_Class:
 
@@ -193,11 +194,11 @@ class RadarPlotting_Class:
 
     @staticmethod
     def PlotReflectivity(axis, lat,lon,radarData_t,
-                         dataName,
+                         dataName, timeTitle,
                          clim = (None,None)):
-    
-        timeTitle = pd.to_datetime(radarData_t['time'].data[0]).strftime("%Y-%m-%d %H:%M:%S")
-        matrix = radarData_t.isel(time=0)
+        """
+        Plots radar data given lat,lon, and radarData_t (a xarray NETCDF object)
+        """
     
         num_levels=19
         if clim != (None,None):
@@ -205,17 +206,16 @@ class RadarPlotting_Class:
         else:
             levels=num_levels
     
-        extend = 'both'
         cmap, norm, levels, ticks = RadarPlotting_Class.GetReflectivityColormap()
-        matrix = matrix.where(matrix > 0)
+        radarData_t = radarData_t.where(radarData_t > 0)
         
-        im = axis.contourf(
-            lon, lat, matrix,
+        contourPlot = axis.contourf(
+            lon, lat, radarData_t,
             levels=levels,
             cmap=cmap,
             norm=norm,
             transform=ccrs.PlateCarree(),
-            extend=extend
+            extend='both'
         ) 
         
         # Add map features
@@ -224,20 +224,42 @@ class RadarPlotting_Class:
         axis.add_feature(RadarPlotting_Class.STATES, linewidth=0.5)
         axis.add_feature(RadarPlotting_Class.LAND, facecolor="lightgray", alpha=0.3)
         axis.add_feature(RadarPlotting_Class.LAKES, edgecolor="k", facecolor="none")
-    
-        # Colorbar
-        label="Reflectivity " + r"($dBZ$)"
-        # Add colorbar
-        cbar = axis.figure.colorbar(im, ax=axis, orientation='vertical',pad=0.01)
-        RadarPlotting_Class.FormatReflectivityColorbar(cbar, ticks, orientation='vertical', show_labels=False)
         
         #TICKS
         RadarPlotting_Class.FormatGeoTicks(axis, lon,lat)
         
         #LABELS
-        title = f"{dataName} Reflectivity – {timeTitle} – 1 km"
+        title = f"{dataName} – {timeTitle} – 1 km"
         axis.set_title(title, fontsize=10);
-        return axis
+        return contourPlot
+
+    @staticmethod
+    def AddSharedColorbar(fig, contourPlot, orientation='vertical',
+                          position=None,
+                          show_labels=False):
+        """
+        Add a shared colorbar to the figure, positioned manually with `position`.
+    
+        Parameters:
+            fig (Figure): Matplotlib figure
+            contourPlot (QuadContourSet): Returned by contourf
+            orientation (str): 'vertical' or 'horizontal'
+            position (list): [left, bottom, width, height] (in figure coords)
+            show_labels (bool): Whether to show category labels
+        """
+        # Default positions
+        if position is None:
+            if orientation == 'vertical':
+                position = [0.92, 0.2, 0.02, 0.6]  # right side
+            else:
+                position = [0.25, 0.1, 0.5, 0.03]  # bottom
+    
+        _, _, _, ticks = RadarPlotting_Class.GetReflectivityColormap()
+    
+        cax = fig.add_axes(position)
+        cbar = fig.colorbar(contourPlot, cax=cax, orientation=orientation)
+        RadarPlotting_Class.FormatReflectivityColorbar(cbar, ticks, orientation, show_labels)
+        return cbar
 
 # #EXAMPLE IMPORTING
 # #Importing PlottingModelData Class
@@ -251,4 +273,3 @@ class RadarPlotting_Class:
 # lat = radarData_t['latitude'].data
 # lon = radarData_t['longitude'].data-360
 # RadarPlotting_Class.PlotReflectivity(axis, lat,lon,radarData_t,dataName="MRMS")
-
