@@ -262,9 +262,8 @@ class RadarPlotting_Class:
         return cbar
 
 # #EXAMPLE IMPORTING
-# #Importing PlottingModelData Class
-# sys.path.append(os.path.join(DirectoryManager.mainCodeDirectory,"DataAnalysis","MPAS_Model_Data"))
-# from CLASSES_PlottingModelData import RadarPlotting_Class
+# sys.path.append(os.path.join(DirectoryManager.mainCodeDirectory,"DataAnalysis"))
+# from CLASSES_RadarDataPlotting import RadarPlotting_Class
         
 # #EXAMPLE USAGE
 # fig, axes = RadarPlotting_Class.CreateMapAxes(nrows=1,ncols=1,
