@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[4]:
+# In[ ]:
 
 
 # ============================================================
@@ -21,7 +21,7 @@ class StructuredModelData_Class:
         self.scratchDirectory = scratchDirectory
 
         # SIMULATION INFO
-        self.region, self.case, self.mpType = RunType
+        (self.region, self.case, self.mpType, self.spinup_hours) = RunType
         self.SimulationTime = SimulationTime
 
         # === DATA DIRECTORIES ===
@@ -64,7 +64,7 @@ class StructuredModelData_Class:
     def GetDataDirectories(self):
         """Return main directory and list of history files."""
         dataDirectory = os.path.join(self.scratchDirectory, self.region, 
-                                     self.case, f"MPAS-Model_{self.mpType}")
+                                     self.case, f"MPAS-Model_{self.mpType}", f"model_run_spinup{self.spinup_hours}hrs")
         Resolution, tResolution = '20-1km', '15mins'
 
         filePattern = os.path.join(dataDirectory,
@@ -74,16 +74,14 @@ class StructuredModelData_Class:
         return dataDirectory, fileList, Resolution, tResolution
 
     def GetDataDirectories_diag(self):
-        dataDirectory = os.path.join(self.scratchDirectory, self.region, 
-                                     self.case, f"MPAS-Model_{self.mpType}")
-        filePattern = os.path.join(dataDirectory,
+        filePattern = os.path.join(self.dataDirectory,
                                    "diag_cartesian", "diag.*.latlon.nc")
         return sorted(glob.glob(filePattern))
         
     def GetStaticData(self, dataDirectory):
         """Open static data using xarray."""
         filePattern = os.path.join(dataDirectory,
-                                   "history_cartesian", "TRACER_regional5250_scaled3_x20.835586.static.latlon.nc")
+                                   "history_cartesian", "static_data", "TRACER_regional5250_scaled3_x20.835586.static.latlon.nc")
         staticDataFilePath = glob.glob(filePattern)[0]
         staticData = xr.open_dataset(staticDataFilePath, engine="netcdf4")
         staticVariables = list(staticData.data_vars)
@@ -92,7 +90,7 @@ class StructuredModelData_Class:
     def GetInitData(self, dataDirectory):
         """Open static data using xarray."""
         filePattern = os.path.join(dataDirectory,
-                                   "history_cartesian", "TRACER_regional5250_scaled3_x20.835586.init.latlon.nc")
+                                   "history_cartesian", "init_data", "TRACER_regional5250_scaled3_x20.835586.init.latlon.nc")
         staticDataFilePath = glob.glob(filePattern)[0]
         initData = xr.open_dataset(staticDataFilePath, engine="netcdf4")
         initVariables = list(initData.data_vars)
@@ -257,22 +255,28 @@ class StructuredModelData_Class:
 # ##############
 
 # #MAIN DIRECTORIES
+# def GetSimulationTime(RunType):
+#     if (RunType[0] == "TRACER") and (RunType[1] == "MOIST"):
+#         SimulationTime = ("2022-06-30","2022-07-03")
+#     elif (RunType[0] == "TRACER") and (RunType[1] == "DRY"):
+#         SimulationTime = ("2022-06-08","2022-06-11")
+#     return SimulationTime
 
 # mainDirectory='/glade/u/home/aroseman/Projects/Regional-MPAS-Project'
 # mainScratchDirectory='/glade/derecho/scratch/aroseman/Projects/Regional-MPAS-Project'
 # scratchDirectory = os.path.join(mainScratchDirectory,"MPAS_Atmosphere_8.3.0")
 
-# RunType = ("TRACER","MOIST","NSSL")
-# SimulationTime = ("2022-06-30","2022-07-03")
+# RunType = ("TRACER","MOIST","NSSL","24")
+# SimulationTime = GetSimulationTime(RunType)
 # ModelData = StructuredModelData_Class(mainDirectory, scratchDirectory, RunType, SimulationTime)
 
-# # ################
-# # #Example Usage
-# # ################
-# # [dataVariables, dataVariables_diag] = ModelData.GetVariableNames()
-# # ModelData.GetDataTimestep(t=100)
+# ################
+# #Example Usage
+# ################
+# [dataVariables, dataVariables_diag] = ModelData.GetVariableNames()
+# ModelData.GetDataTimestep(t=100)
 # # ModelData.GetDataTimestep(t=100,varName='w')
-# # ModelData.GetDataTimestep_diag(t=100)
+# ModelData.GetDataTimestep_diag(t=100)
 # # ModelData.GetDataTimestep_diag(t=100,varName='refl10cm')
 
 
@@ -383,7 +387,7 @@ class DataOperator_Class:
 
     @staticmethod
     def GetOutputFilePath(ModelData, DirectoryManager, outputDirectory, fileName):
-        folderName = f"{ModelData.region}_{ModelData.case}_{ModelData.mpType}"    
+        folderName = f"{ModelData.region}_{ModelData.case}_{ModelData.mpType}_{ModelData.spinup_hours}hrs"    
         filePath = DirectoryManager.GetOutputFile(outputDirectory, folderName, fileName)
         return filePath
 

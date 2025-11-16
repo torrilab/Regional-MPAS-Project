@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[5]:
 
 
 # ============================================================
@@ -159,16 +159,27 @@ class DirectoryManager_Class:
         print(f" Main Code Directory:      {self.mainCodeDirectory}")
         print(f" Current Code Directory:   {self.codeDirectory}")
         print("============================================================\n")
-# Example Importing
-        
+
+# #Example Importing
+# #Importing DirectoryManager Class
+# sys.path.append(os.path.join("/glade/u/home/aroseman/Projects/Regional-MPAS-Project/Code/CodeFiles/","DataAnalysis"))
+# from CLASSES_Directories import DirectoryManager_Class
         
 # #Example USAGE
+# DirectoryManager = DirectoryManager_Class()
 
-# DirectoryManager = DirectoryManager_CLASS()
-
-# codeType = os.path.join("DataAnalysis", "MPAS_Model_Data", "InitialFigures")
-# dataType = "SurfaceVariableAnimations_Unstructured"
+# codeType = os.path.join("DataAnalysis", "MPAS_Model_Data", "VariableComparisons")
+# dataType = "AreaAverages"
 
 # outputDirectory = DirectoryManager.GetOutputDirectory(codeType, dataType)
-# outputDirectory = DirectoryManager.GetOutputDirectory(codeType, dataType)
+# print(outputDirectory)
+# outputPlottingDirectory = DirectoryManager.GetOutputPlottingDirectory(codeType, dataType)
+# outputPlottingDirectory = DirectoryManager.GetOutputPlottingDirectory(codeType, dataType)
+# print(outputPlottingDirectory)
+
+
+# In[ ]:
+
+
+
 
