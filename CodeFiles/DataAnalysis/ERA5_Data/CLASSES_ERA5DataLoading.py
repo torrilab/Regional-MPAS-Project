@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 # ============================================================
@@ -11,11 +11,13 @@
 #Libraries
 import os
 import glob
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
 import xarray as xr
+
+from tqdm import tqdm
 
 import cdsapi 
 
@@ -52,6 +54,7 @@ class ERA5DataLoading_Class:
             print(f"Downloading {variable}", "\n")
             
             ERA5FileName = ERA5DataLoading_Class.GetERA5FileName_PressureLevels(ERA5FilePath, variable)
+            print(f'Saving file to {ERA5FileName}')
             
             c.retrieve(
                 "reanalysis-era5-pressure-levels",
@@ -76,7 +79,6 @@ class ERA5DataLoading_Class:
                 },
                 ERA5FileName
             )
-            print(f'Saved file to {ERA5FileName}')
 
     @staticmethod
     def DownloadERA5_Surface(variables, date, area, ERA5FilePath):
@@ -94,6 +96,7 @@ class ERA5DataLoading_Class:
             print(f"Downloading {variable}", "\n")
     
             ERA5FileName = ERA5DataLoading_Class.GetERA5FileName_Surface(ERA5FilePath, variable)
+            print(f'Saving file to {ERA5FileName}')
             
             c.retrieve(
                 "reanalysis-era5-single-levels",
@@ -108,7 +111,6 @@ class ERA5DataLoading_Class:
                 },
                 ERA5FileName
             )
-            print(f'Saved file to {ERA5FileName}')
         
     @staticmethod
     def GetVariableNames_PressureLevels():
@@ -168,10 +170,12 @@ class ERA5DataLoading_Class:
         lat, lon can be 1D or 2D arrays from ModelData_NSSL.
         Returns area in ERA5 format: [N, W, S, E].
         """
+        lon360 = lon+360
+        
         north = float(np.max(lat))
         south = float(np.min(lat))
-        east  = float(np.max(lon))
-        west  = float(np.min(lon))
+        east  = float(np.max(lon360))
+        west  = float(np.min(lon360))
     
         return [north, west, south, east]
 
@@ -220,21 +224,14 @@ class ERA5DataLoading_Class:
     
         return ERA5_subset
 
-    # @staticmethod
-    # def LoadERA5Data(timeString, ModelData, DirectoryManager):
-    #     filePath = ERA5DataLoading_Class.GetERA5FilePath(DirectoryManager, timeString, varName='msl')
-    #     ERA5Data = xr.open_dataset(filePath)['MSL']
-    #     ERA5_subset = ERA5DataLoading_Class.SubsetERA5(ERA5Data,ModelData)
-    #     return ERA5_subset
-
     @staticmethod
     def LoadERA5Data(DirectoryManager, ModelData, variableName, dataType = "Surface"):
+        ERA5FilePath = ERA5DataLoading_Class.GetERA5FilePath(DirectoryManager,ModelData)
         if dataType == "Surface":
             ERA5FileName = ERA5DataLoading_Class.GetERA5FileName_Surface(ERA5FilePath, variableName)
             print(ERA5FileName)
         elif dataType == "PressureLevels":
             ERA5FileName = ERA5DataLoading_Class.GetERA5FileName_PressureLevels(ERA5FilePath, variableName)
-        
         
         ERA5_NAME_MAP = {
             "total_precipitation": "tp",
@@ -245,8 +242,7 @@ class ERA5DataLoading_Class:
         }
         ERA5variableName = ERA5_NAME_MAP.get(variableName, variableName)
         
-        ERA5Data = xr.open_dataset(ERA5FileName)
-        ERA5Variable = ERA5Data[ERA5variableName]
+        ERA5Data = xr.open_dataset(ERA5FileName)[ERA5variableName]
         ERA5_subset = ERA5DataLoading_Class.SubsetERA5(ERA5Data,ModelData)
         return ERA5_subset
     
