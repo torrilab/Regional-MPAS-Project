@@ -25,7 +25,7 @@ class ERA5DataLoading_Class:
 
     @staticmethod
     def GetERA5FileName_PressureLevels(ERA5FilePath, variable):
-        fileName = f"ERA5Surface_{variable}.nc"
+        fileName = f"ERA5PressureLevels_{variable}.nc"
         ERA5FileName = os.path.join(ERA5FilePath, fileName)
         return ERA5FileName
 
@@ -229,20 +229,20 @@ class ERA5DataLoading_Class:
         ERA5FilePath = ERA5DataLoading_Class.GetERA5FilePath(DirectoryManager,ModelData)
         if dataType == "Surface":
             ERA5FileName = ERA5DataLoading_Class.GetERA5FileName_Surface(ERA5FilePath, variableName)
-            print(ERA5FileName)
         elif dataType == "PressureLevels":
             ERA5FileName = ERA5DataLoading_Class.GetERA5FileName_PressureLevels(ERA5FilePath, variableName)
         
         ERA5_NAME_MAP = {
             "total_precipitation": "tp",
+            "accumulated_precipitation": "tp",
             "2m_temperature": "t2m",
             "surface_sensible_heat_flux": "sshf",
             "surface_latent_heat_flux": "slhf",
-            "msl": "msl",  # already matching
+            "msl": "msl",  
         }
         ERA5variableName = ERA5_NAME_MAP.get(variableName, variableName)
         
-        ERA5Data = xr.open_dataset(ERA5FileName)[ERA5variableName]
+        ERA5Data = xr.open_dataset(ERA5FileName, cache=False)[ERA5variableName].load()
         ERA5_subset = ERA5DataLoading_Class.SubsetERA5(ERA5Data,ModelData)
         return ERA5_subset
     
