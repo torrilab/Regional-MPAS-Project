@@ -116,7 +116,7 @@ class ContourPlotting_Class:
         ContourPlotting_Class.FormatGeoTicks(axis, lon,lat)
         
         #LABELS
-        title = f"{dataName} – {timeTitle} – 1 km"
+        title = f"{dataName} – {timeTitle}"
         axis.set_title(title, fontsize=10);
         return contourPlot
 
