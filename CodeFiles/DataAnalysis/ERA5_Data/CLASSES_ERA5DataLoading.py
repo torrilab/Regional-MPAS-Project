@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 # ============================================================
@@ -259,6 +259,89 @@ class ERA5DataLoading_Class:
         ERA5Data_t = ERA5Data.sel(valid_time=time_dt, method='nearest')
     
         return ERA5Data_t
+
+
+
+
+    #####################################################
+    #if using data linked from "gdex" directory on Derecho
+    #####################################################
+
+    @staticmethod
+    def GetERA5FilePath_gdex(DirectoryManager,ModelData):
+        ERA5FilePath = os.path.join(DirectoryManager.dataDirectory,
+                                      "ERA5_Data",
+                                      "ERA5_PressureLevel")
+        return ERA5FilePath
+
+    @staticmethod
+    def GetERA5FileName_PressureLevels_gdex(ERA5FilePath_gdex, date, variableName):
+        if variableName in ["u","v"]:
+            type1 = "uv"
+        else:
+            type1 = "sc"
+        filePattern = os.path.join(ERA5FilePath_gdex,date[0:6],f"e5.oper.an.pl.128_*_{variableName}.ll025{type1}.{date}00_{date}23.nc")
+        print(filePattern)
+        ERA5FileName = glob.glob(filePattern)[0]
+    
+        ERA5Data = xr.open_dataset(ERA5FileName)
+        return ERA5Data
+
+    @staticmethod
+    def SelectNearestERA5Time_gdex(ERA5Data, timeString):
+        """
+        Selects the nearest ERA5 time slice based on a custom time string.
+        """
+    
+        # Convert custom timeString to pandas Timestamp
+        time_dt = pd.to_datetime(timeString.replace('_', ' ').replace('.', ':'))
+    
+        # Use xarray's nearest selection
+        ERA5Data_t = ERA5Data.sel(time=time_dt, method='nearest')
+    
+        return ERA5Data_t
+
+    @staticmethod
+    def LoadERA5Data_gdex(DirectoryManager, ModelData, timeString,variableName):     
+        ERA5FilePath_gdex = ERA5DataLoading_Class.GetERA5FilePath_gdex(DirectoryManager,ModelData_NSSL)
+        date = timeString.split("_")[0].replace("-","")
+        ERA5Data = ERA5DataLoading_Class.GetERA5FileName_PressureLevels_gdex(ERA5FilePath_gdex, date, variableName)
+        ERA5Data_t = ERA5DataLoading_Class.SelectNearestERA5Time_gdex(ERA5Data, timeString)
+        
+        ERA5_t_subset = ERA5DataLoading_Class.SubsetERA5(ERA5Data_t,ModelData)
+        ERA5_NAME_MAP = {
+            "crwc": "CRWC",
+            "t":   "T",
+            "u":   "U",
+            "v":   "V",
+            "q":   "Q",
+            "w":   "W",
+            "vo":  "VO", #* not added to convert_mpas yet
+            "d":   "D",
+            "r":   "R",
+            "clwc": "CLWC",
+            "ciwc": "CIWC",
+        }
+        ERA5VariableName = ERA5_NAME_MAP.get(variableName,variableName)
+        return ERA5_t_subset[ERA5VariableName]
+
+    @staticmethod
+    def GetNameMap_ERA5toModel():
+        ERA5_NAME_MAP = {
+            "crwc": "qr",
+            # "z":   "nan",
+            "t":   "theta", #* #need to convert model to temperature
+            "u":   "uReconstructZonal",
+            "v":   "uReconstructMeridional",
+            "q":   "qv",
+            "w":   "w",
+            "vo":  "vorticity", #* not added to convert_mpas yet
+            "d":   "divergence",
+            "r":   "relhum",
+            "clwc": "qc",
+            "ciwc": "qi",
+        }
+        return ERA5_NAME_MAP
 
 
 # In[ ]:
