@@ -174,10 +174,19 @@ class RadarPlotting_Class:
         axis.set_extent([min(lon), max(lon), min(lat), max(lat)], crs=ccrs.PlateCarree())
         
         #Add lat/lon ticks with degrees
-        axis.set_xticks(np.round(np.linspace(lon.min(), lon.max(), n_ticks), decimal_points), 
-                        crs=ccrs.PlateCarree())
-        axis.set_yticks(np.round(np.linspace(lat.min(), lat.max(), n_ticks), decimal_points), 
-                        crs=ccrs.PlateCarree())
+        # axis.set_xticks(np.round(np.linspace(lon.min(), lon.max(), n_ticks), decimal_points), 
+        #                 crs=ccrs.PlateCarree())
+        # axis.set_yticks(np.round(np.linspace(lat.min(), lat.max(), n_ticks), decimal_points), 
+        #                 crs=ccrs.PlateCarree())
+        axis.set_xticks(
+            np.round(np.linspace(float(lon.min()), float(lon.max()), n_ticks), decimal_points),
+            crs=ccrs.PlateCarree()
+        )
+        
+        axis.set_yticks(
+            np.round(np.linspace(float(lat.min()), float(lat.max()), n_ticks), decimal_points),
+            crs=ccrs.PlateCarree()
+        )
         
         # Format tick labels as degrees
         if formatters == True:
@@ -272,3 +281,4 @@ class RadarPlotting_Class:
 # lat = radarData_t['latitude'].data
 # lon = radarData_t['longitude'].data-360
 # RadarPlotting_Class.PlotReflectivity(axis, lat,lon,radarData_t,dataName="MRMS")
+
