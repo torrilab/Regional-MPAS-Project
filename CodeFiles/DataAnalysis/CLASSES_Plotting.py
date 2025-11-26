@@ -12,6 +12,7 @@ import sys,os
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+from matplotlib.colors import TwoSlopeNorm
 import numpy as np
 import pandas as pd  
 import cartopy.crs as ccrs  
@@ -85,22 +86,46 @@ class ContourPlotting_Class:
     def PlotContourPlot(axis, lat,lon,matrix,
                          dataName, timeTitle,
                          multiplier=1,
-                         clim = (None,None)):
+                         clim = (None,None),
+                         diverging_colorbar=False):
         """
         Plots radar data given lat,lon, and radarData_t (a xarray NETCDF object)
         """
         num_levels=19
-        if clim != (None,None):
-            levels = multiplier*np.linspace(clim[0],clim[1],num_levels)
+        if diverging_colorbar == False:
+            cmap = 'viridis'
+            norm = None
+        
+            if clim != (None, None):
+                vmin, vmax = clim
+                levels = multiplier * np.linspace(vmin, vmax, num_levels)
+            else:
+                levels = num_levels
+        
+        # Diverging (centered at zero)
         else:
-            levels=num_levels
-
-        cmap = 'viridis'
+            cmap = "RdBu_r"
+        
+            # Handle clim or auto-detect
+            if clim != (None, None):
+                vmin, vmax = clim
+            else:
+                data_min = float(np.nanmin(multiplier * matrix))
+                data_max = float(np.nanmax(multiplier * matrix))
+                vmax = max(abs(data_min), abs(data_max))
+                vmin = -vmax
+        
+            # Symmetric levels around zero
+            levels = np.linspace(vmin, vmax, num_levels)
+        
+            # Center colorbar at zero
+            norm = TwoSlopeNorm(vmin=vmin, vcenter=0.0, vmax=vmax)
         
         contourPlot = axis.contourf(
             lon, lat, multiplier*matrix,
             levels=levels,
             cmap=cmap,
+            norm=norm,
             transform=ccrs.PlateCarree(),
             extend='both'
         ) 

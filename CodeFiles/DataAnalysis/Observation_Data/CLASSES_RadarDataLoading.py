@@ -261,3 +261,35 @@ class RadarData_ARM_Class:
         axis.figure.colorbar(cplot, label='dBZ')
         axis.set_xlim(xlim); axis.set_ylim(ylim)
 
+
+# In[ ]:
+
+
+class RadarObservationMask_Class:
+    @staticmethod
+    def LoadMaskData_MRMS(DirectoryManager, ModelData):
+        """
+        Load a previously saved radar observation mask for timestep t.
+        """
+    
+        codeType = os.path.join("DataAnalysis", "Observation_Data")
+        dataType = "RadarData/RadarObservationMask"
+        outputDirectory = DirectoryManager.GetOutputDirectory(codeType, dataType)
+    
+        # Rebuild the directory path used in SaveMaskData
+        outputPath = os.path.join(
+            outputDirectory,
+            f"{ModelData.region}_{ModelData.case}_spinup{ModelData.spinup_hours}hrs"
+        )
+    
+        # Filename pattern must match the SaveMaskData naming
+        outputFileName = f"RadarObservationMask.nc"
+        outputFilePath = os.path.join(outputPath, outputFileName)
+    
+        # Load mask file
+        RadarDataMask = xr.load_dataarray(outputFilePath)
+    
+        print(f"Loaded mask: {outputFilePath}\n")
+    
+        return RadarDataMask
+

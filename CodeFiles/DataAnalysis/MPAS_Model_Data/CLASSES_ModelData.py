@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 # ============================================================
@@ -10,19 +10,19 @@
 # ============================================================
 
 import os
+import re
 import glob
 from datetime import datetime, timedelta
 import xarray as xr
 
 class StructuredModelData_Class:
-    def __init__(self, mainDirectory, scratchDirectory, RunType, SimulationTime):
+    def __init__(self, mainDirectory, scratchDirectory, RunType):#, SimulationTime):
         # DIRECTORIES
         self.mainDirectory = mainDirectory
         self.scratchDirectory = scratchDirectory
 
         # SIMULATION INFO
         (self.region, self.case, self.mpType, self.spinup_hours) = RunType
-        self.SimulationTime = SimulationTime
 
         # === DATA DIRECTORIES ===
         (self.dataDirectory,
@@ -31,6 +31,10 @@ class StructuredModelData_Class:
          self.tResolution) = self.GetDataDirectories()
 
         self.fileList_diag = self.GetDataDirectories_diag()
+
+        # SIMULATION INFO
+        # self.SimulationTime = SimulationTime
+        self.SimulationTime = self.GetSimulationTime(self.fileList)
 
         # === STATIC DATA ===
         (self.staticData,
@@ -60,6 +64,36 @@ class StructuredModelData_Class:
     # ============================================================
     # Data Loading and Paths
     # ============================================================
+
+    def GetSimulationTime(self,fileList):
+        """
+        Extracts simulation start and end dates (YYYY-MM-DD)
+        """
+    
+        dates = []
+    
+        for path in fileList:
+            filename = os.path.basename(path)
+    
+            # Extract just the YYYY-MM-DD part
+            match = re.search(r"\d{4}-\d{2}-\d{2}", filename)
+            if match:
+                dates.append(match.group())
+    
+        if len(dates) == 0:
+            raise ValueError("No dates found in fileList.")
+    
+        # Convert to datetime.date
+        date_objs = [datetime.strptime(d, "%Y-%m-%d").date() for d in dates]
+    
+        # Get min and max
+        startDate = min(date_objs)
+        endDate   = max(date_objs)
+    
+        return (
+            startDate.strftime("%Y-%m-%d"),
+            endDate.strftime("%Y-%m-%d")
+        )
 
     def GetDataDirectories(self):
         """Return main directory and list of history files."""
@@ -255,12 +289,12 @@ class StructuredModelData_Class:
 # ##############
 
 # #MAIN DIRECTORIES
-# def GetSimulationTime(RunType):
-#     if (RunType[0] == "TRACER") and (RunType[1] == "MOIST"):
-#         SimulationTime = ("2022-06-30","2022-07-03")
-#     elif (RunType[0] == "TRACER") and (RunType[1] == "DRY"):
-#         SimulationTime = ("2022-06-08","2022-06-11")
-#     return SimulationTime
+## def GetSimulationTime(RunType):
+##     if (RunType[0] == "TRACER") and (RunType[1] == "MOIST"):
+##         SimulationTime = ("2022-06-30","2022-07-03")
+##     elif (RunType[0] == "TRACER") and (RunType[1] == "DRY"):
+##         SimulationTime = ("2022-06-08","2022-06-11")
+##     return SimulationTime
 
 # mainDirectory='/glade/u/home/aroseman/Projects/Regional-MPAS-Project'
 # mainScratchDirectory='/glade/derecho/scratch/aroseman/Projects/Regional-MPAS-Project'
@@ -268,7 +302,7 @@ class StructuredModelData_Class:
 
 # RunType = ("TRACER","MOIST","NSSL","24")
 # SimulationTime = GetSimulationTime(RunType)
-# ModelData = StructuredModelData_Class(mainDirectory, scratchDirectory, RunType, SimulationTime)
+# ModelData = StructuredModelData_Class(mainDirectory, scratchDirectory, RunType)#, SimulationTime)
 
 # ################
 # #Example Usage

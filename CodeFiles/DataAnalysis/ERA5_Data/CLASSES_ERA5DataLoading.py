@@ -303,7 +303,7 @@ class ERA5DataLoading_Class:
 
     @staticmethod
     def LoadERA5Data_gdex(DirectoryManager, ModelData, timeString,variableName):     
-        ERA5FilePath_gdex = ERA5DataLoading_Class.GetERA5FilePath_gdex(DirectoryManager,ModelData_NSSL)
+        ERA5FilePath_gdex = ERA5DataLoading_Class.GetERA5FilePath_gdex(DirectoryManager,ModelData)
         date = timeString.split("_")[0].replace("-","")
         ERA5Data = ERA5DataLoading_Class.GetERA5FileName_PressureLevels_gdex(ERA5FilePath_gdex, date, variableName)
         ERA5Data_t = ERA5DataLoading_Class.SelectNearestERA5Time_gdex(ERA5Data, timeString)
@@ -311,6 +311,7 @@ class ERA5DataLoading_Class:
         ERA5_t_subset = ERA5DataLoading_Class.SubsetERA5(ERA5Data_t,ModelData)
         ERA5_NAME_MAP = {
             "crwc": "CRWC",
+            "z":   "Z",
             "t":   "T",
             "u":   "U",
             "v":   "V",
@@ -329,7 +330,7 @@ class ERA5DataLoading_Class:
     def GetNameMap_ERA5toModel():
         ERA5_NAME_MAP = {
             "crwc": "qr",
-            # "z":   "nan",
+            # "z":    None, #need to get 
             "t":   "theta", #* #need to convert model to temperature
             "u":   "uReconstructZonal",
             "v":   "uReconstructMeridional",

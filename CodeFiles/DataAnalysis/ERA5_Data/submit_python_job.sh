@@ -30,10 +30,10 @@ export PYTHONUNBUFFERED=TRUE
 
 # --- Convert and Run ---
 jupyter nbconvert --to script "$NOTEBOOK"
-python -u "$SCRIPT" > "${JOB_DIR}/${SCRIPT%.py}-${PBS_JOBID}.out" 2>&1
+python -u "$SCRIPT" > job_out/${SCRIPT%.py}-${PBS_JOBID}.out 2>&1
 
 # --- Move PBS .o and .e files into the job directory ---
-BaseJobID=$(echo "$PBS_JOBID" | sed -E 's/\[.*//; s/\..*//')    # e.g. 370036
+BaseJobID="${PBS_JOBID%%[*]*}"     # e.g. 370036
 Index="${PBS_ARRAY_INDEX}"         # e.g. 1
 
 echo "Moving PBS output files into ${JOB_DIR}:"
