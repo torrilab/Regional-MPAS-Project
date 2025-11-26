@@ -3,7 +3,7 @@
 #PBS -N python
 #PBS -q main
 #PBS -l job_priority=economy
-#PBS -l walltime=02:00:00
+#PBS -l walltime=01:30:00
 #PBS -l select=1:ncpus=1:mem=20GB
 #PBS -M air673@hawaii.edu
 #PBS -m bea
@@ -18,7 +18,7 @@ export PYTHONUNBUFFERED=TRUE
 mkdir -p job_out
 
 # --- Convert and Run ---
-NOTEBOOK="SurfaceVariableAnimation.ipynb"
+NOTEBOOK="AreaAverages.ipynb"
 SCRIPT="${NOTEBOOK%.ipynb}.py"
 
 jupyter nbconvert --to script "$NOTEBOOK"

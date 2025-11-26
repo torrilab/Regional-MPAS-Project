@@ -1,14 +1,20 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[2]:
+
+
+# WHEN SAFE, MOVE OUTPUT TO RadarComparison/RadarComparison_MRMS
+
+
+# In[3]:
 
 
 ####################################
 #ENVIRONMENT SETUP
 
 
-# In[ ]:
+# In[4]:
 
 
 #LIBRARIES
@@ -41,7 +47,7 @@ from tqdm import tqdm
 from datetime import datetime
 
 
-# In[ ]:
+# In[5]:
 
 
 #Importing DirectoryManager Class
@@ -49,19 +55,19 @@ sys.path.append(os.path.join("/glade/u/home/aroseman/Projects/Regional-MPAS-Proj
 from CLASSES_Directories import DirectoryManager_Class
 
 
-# In[ ]:
+# In[6]:
 
 
 DirectoryManager = DirectoryManager_Class()
 
-codeType = os.path.join("DataAnalysis", "Observation_Data", "TRACER")
+codeType = os.path.join("DataAnalysis", "Observation_Data")
 dataType = "RadarData"
 
 outputDirectory = DirectoryManager.GetOutputDirectory(codeType, dataType)
 outputPlottingDirectory = DirectoryManager.GetOutputPlottingDirectory(codeType, dataType)
 
 
-# In[ ]:
+# In[7]:
 
 
 #Importing ModelData Class
@@ -69,23 +75,39 @@ sys.path.append(os.path.join(DirectoryManager.mainCodeDirectory,"DataAnalysis","
 from CLASSES_ModelData import StructuredModelData_Class, DataOperator_Class
 
 
-# In[ ]:
+# In[8]:
+
+
+DirectoryManager.dataDirectory
+
+
+# In[13]:
 
 
 def GetSimulationTime(RunType):
     if (RunType[0] == "TRACER") and (RunType[1] == "MOIST"):
         SimulationTime = ("2022-06-30","2022-07-03")
+    elif (RunType[0] == "TRACER") and (RunType[1] == "DRY"):
+        SimulationTime = ("2022-06-08","2022-06-11")
     return SimulationTime
 
-RunType = ("TRACER","MOIST","NSSL")
+# spinup_hours = "24"
+# spinup_hours = "12"
+# spinup_hours = "6"
+spinup_hours = "0"
+
+RunType = ("TRACER","MOIST","NSSL",spinup_hours)
+# RunType = ("TRACER","DRY","NSSL",spinup_hours)
 SimulationTime = GetSimulationTime(RunType)
 ModelData_NSSL = StructuredModelData_Class(DirectoryManager.mainDirectory, DirectoryManager.scratchDirectory, RunType, SimulationTime)
 
-RunType = ("TRACER","MOIST","TEMPO")
+RunType = ("TRACER","MOIST","TEMPO",spinup_hours)
+# RunType = ("TRACER","DRY","TEMPO",spinup_hours)
+SimulationTime = GetSimulationTime(RunType)
 ModelData_TEMPO = StructuredModelData_Class(DirectoryManager.mainDirectory, DirectoryManager.scratchDirectory, RunType, SimulationTime)
 
 
-# In[ ]:
+# In[14]:
 
 
 #Importing Radar Classes
@@ -96,15 +118,15 @@ sys.path.append(os.path.join(DirectoryManager.mainCodeDirectory,"DataAnalysis"))
 from CLASSES_RadarDataPlotting import RadarPlotting_Class
 
 
-# In[ ]:
+# In[15]:
 
 
 #Importing ERA5 Data Loading Classes
 sys.path.append(os.path.join(DirectoryManager.mainCodeDirectory,"DataAnalysis","ERA5_Data"))
-from CLASSES_ERA5DataLoading import ERA5DataLoading_Class
+from CLASSES_ERA5DataLoading import ERA5DataLoading_Class,ERA5DataLoading_Class_gdex
 
 
-# In[ ]:
+# In[16]:
 
 
 #Importing ModelData Class
@@ -112,14 +134,14 @@ sys.path.append(os.path.join(DirectoryManager.mainCodeDirectory,"DataAnalysis"))
 from CLASSES_DataSaving import DataSaving_Class
 
 
-# In[ ]:
+# In[17]:
 
 
 ###############
 #JOB ARRAY SETUP
 
 
-# In[ ]:
+# In[18]:
 
 
 #Importing PlottingModelData Class
@@ -127,7 +149,7 @@ sys.path.append(os.path.join(DirectoryManager.mainCodeDirectory,"DataAnalysis"))
 from CLASSES_JobArray import JobArray_Class
 
 
-# In[ ]:
+# In[19]:
 
 
 #JOB ARRAY SETUP
@@ -147,14 +169,14 @@ def GetNumElements():
 loop_elements = GetNumElements()
 
 
-# In[ ]:
+# In[20]:
 
 
 ########################
 #DATA INFORMATION
 
 
-# In[ ]:
+# In[21]:
 
 
 #DATA CITATION
@@ -164,7 +186,7 @@ loop_elements = GetNumElements()
 # https://urldefense.com/v3/__https://app.globus.org/file-manager?origin_id=ba87aabe-30f6-433d-b4a5-19434c595e0f&origin_path=*rosemana1*261781*__;Ly8v!!PvDODwlR4mBZyAb0!REKAOzHJNvJk50CY5Pjl135CV83BhArwtdyMDuBM-28KqreBug8Xb5Mc3MLgy_p9PUiWe2uVXq-EfUtLcGdH5w$
 
 
-# In[ ]:
+# In[22]:
 
 
 #DATA CITATION
@@ -176,31 +198,36 @@ loop_elements = GetNumElements()
 #https://urldefense.com/v3/__https://app.globus.org/file-manager?origin_id=ba87aabe-30f6-433d-b4a5-19434c595e0f&origin_path=*rosemana1*261893*__;Ly8v!!PvDODwlR4mBZyAb0!UJrKWg_xaYuaaa_iaY91TCVMB_neSskXsDKHtPPCG7Ix6sEmiEvnngTUrYuV18LudZqxB3eHyTDuCHSZ3o3zrg$
 
 
-# In[ ]:
+# In[30]:
 
 
 #LOADING RADAR CLASS
+if spinup_hours == "0":
+    dateString = '2022-06-30_2022-07-03'
+else:
+    dateString = f"{ModelData_NSSL.simulationDates[0]}_{ModelData_NSSL.simulationDates[-1]}"
+
 RadarData_MRMS = RadarData_MRMS_Class(ModelData_NSSL,
                                       fileDirectory=os.path.join(DirectoryManager.dataDirectory,
                                                                  "Observation_Data/TRACER/MRMS_RadarData",
-                                                                 f"{ModelData_NSSL.simulationDates[0]}_{ModelData_NSSL.simulationDates[-1]}"))
+                                                                 dateString))
 
 
-# In[ ]:
+# In[31]:
 
 
 ##########################
 #DATA LOADING FUNCTIONS
 
 
-# In[ ]:
+# In[32]:
 
 
 ##########################
 #PLOTTING FUNCTIONS
 
 
-# In[ ]:
+# In[33]:
 
 
 #Converting timeStrings
@@ -220,7 +247,7 @@ def ConvertTimeStringtoTimeTitle(timeString):
     return dt.strftime('%Y-%m-%d %H:%M:%S')
 
 
-# In[ ]:
+# In[34]:
 
 
 #Getting TimeData
@@ -243,8 +270,10 @@ def GetData(t):
     mslpData_TEMPO = ModelData_TEMPO.GetDataTimestep_diag(t)['mslp']/1e2
 
     #Getting ERA5 MSLP Data
-    mslp_ERA5_alltimes = ERA5DataLoading_Class.LoadERA5Data(timeString, ModelData_NSSL, DirectoryManager)
-    mslp_ERA5 = ERA5DataLoading_Class.SelectNearestERA5Time(mslp_ERA5_alltimes, timeString)/1e2
+    mslp_ERA5_alltimes = ERA5DataLoading_Class_gdex.LoadERA5Data(timeString, ModelData_NSSL, DirectoryManager)
+    mslp_ERA5 = ERA5DataLoading_Class_gdex.SelectNearestERA5Time(mslp_ERA5_alltimes, timeString)/1e2
+    # mslp_ERA5_alltimes = ERA5DataLoading_Class.LoadERA5Data(DirectoryManager, ModelData_NSSL, variableName='msl',dataType='Surface')
+    # mslp_ERA5 = ERA5DataLoading_Class.SelectNearestERA5Time(mslp_ERA5_alltimes, ModelData_NSSL.timeStrings[t])/1e2
 
     return (
     modelRadarData_NSSL,modelRadarData_TEMPO,modelRadarTimeTitle, 
@@ -255,14 +284,14 @@ def GetData(t):
     )
 
 
-# In[ ]:
+# In[35]:
 
 
 ##########################
 #PLOTTING FUNCTIONS
 
 
-# In[ ]:
+# In[36]:
 
 
 def MakePlot(modelRadarData_NSSL,modelRadarData_TEMPO,modelRadarTimeTitle, 
@@ -327,8 +356,14 @@ def MakePlot(modelRadarData_NSSL,modelRadarData_TEMPO,modelRadarTimeTitle,
 # In[ ]:
 
 
+
+
+
+# In[37]:
+
+
 def GetOutputFile(ModelData_1,ModelData_2, outputPlottingDirectory):
-    outputSubDirectory = f"{ModelData_1.region}_{ModelData_1.case}"
+    outputSubDirectory = f"{ModelData_1.region}_{ModelData_1.case}_{ModelData_1.spinup_hours}hrs"
     os.makedirs(os.path.join(outputPlottingDirectory, outputSubDirectory), exist_ok=True)
 
     
@@ -336,11 +371,7 @@ def GetOutputFile(ModelData_1,ModelData_2, outputPlottingDirectory):
         outputPlottingDirectory,
         outputSubDirectory)
     return outputFilePath
-
-
-# In[ ]:
-
-
+    
 def SaveFigure(fig, ModelData_1,ModelData_2, timeString):
     """
     Saves a figure to corresponding directory.
@@ -355,7 +386,7 @@ def SaveFigure(fig, ModelData_1,ModelData_2, timeString):
     print(f"Saved to {outputFile}")
 
 
-# In[ ]:
+# In[38]:
 
 
 ##########################
@@ -382,7 +413,7 @@ for t in tqdm(loop_elements, desc="Processing"):
 
 
 
-# In[ ]:
+# In[40]:
 
 
 #################
@@ -391,7 +422,7 @@ ANIMATE=False #keep false when running with bash code
 # ANIMATE=True
 
 
-# In[ ]:
+# In[41]:
 
 
 if ANIMATE==True:    
@@ -400,7 +431,7 @@ if ANIMATE==True:
     from CLASSES_PlottingModelData import AnimationPlotting_Class
 
 
-# In[ ]:
+# In[42]:
 
 
 def GetVariableInputFiles(ModelData_1,ModelData_2, outputPlottingDirectory):
@@ -421,7 +452,7 @@ def GetPlottingFileName(ModelData_1,ModelData_2, outputPlottingDirectory, filePa
     return plottingFilePath
 
 
-# In[ ]:
+# In[43]:
 
 
 # PNGtoMP4 VERSION

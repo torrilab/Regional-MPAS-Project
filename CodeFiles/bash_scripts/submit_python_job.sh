@@ -11,7 +11,7 @@
 cd $PBS_O_WORKDIR
 
 # --- Setup Variables ---
-NOTEBOOK="ERA5Comparison.ipynb"
+NOTEBOOK="RadarComparison_MRMS.ipynb"
 SCRIPT="${NOTEBOOK%.ipynb}.py"
 JOB_DIR="job_out/${SCRIPT%.py}"
 

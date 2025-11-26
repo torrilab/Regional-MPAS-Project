@@ -20,4 +20,4 @@ conda activate npl
 
 ### Run the Python script
 echo "Code File directory is: $(pwd)"
-python SPolRadar_Data.py 
+python SPolRadar_Data.py
