@@ -115,7 +115,7 @@ class StructuredModelData_Class:
     def GetStaticData(self, dataDirectory):
         """Open static data using xarray."""
         filePattern = os.path.join(dataDirectory,
-                                   "history_cartesian", "static_data", "TRACER_regional5250_scaled3_x20.835586.static.latlon.nc")
+                                   "history_cartesian", "static_data", f"{self.region}_*.static.latlon.nc")
         staticDataFilePath = glob.glob(filePattern)[0]
         staticData = xr.open_dataset(staticDataFilePath, engine="netcdf4")
         staticVariables = list(staticData.data_vars)
@@ -124,7 +124,7 @@ class StructuredModelData_Class:
     def GetInitData(self, dataDirectory):
         """Open static data using xarray."""
         filePattern = os.path.join(dataDirectory,
-                                   "history_cartesian", "init_data", "TRACER_regional5250_scaled3_x20.835586.init.latlon.nc")
+                                   "history_cartesian", "init_data", f"{self.region}_*.init.latlon.nc")
         staticDataFilePath = glob.glob(filePattern)[0]
         initData = xr.open_dataset(staticDataFilePath, engine="netcdf4")
         initVariables = list(initData.data_vars)
@@ -314,7 +314,7 @@ class StructuredModelData_Class:
 # # ModelData.GetDataTimestep_diag(t=100,varName='refl10cm')
 
 
-# In[62]:
+# In[2]:
 
 
 # ============================================================
@@ -328,9 +328,13 @@ import numpy as np
 class DataOperator_Class:
 
     @staticmethod
-    def LatLonBoundingBox_Center(campaign="TRACER"): 
-        if campaign == "TRACER":
+    def LatLonBoundingBox_Center(region="TRACER"): 
+        if region == "TRACER":
             (latCenter, lonCenter) = 29.67, -95.059
+        elif region == "PRECIP":
+            (latCenter, lonCenter) = 24.82, 120.91
+        elif region == "Hawaii":
+            (latCenter, lonCenter) = 21.133, 157.180 
         return latCenter,lonCenter
 
     @staticmethod
@@ -398,7 +402,7 @@ class DataOperator_Class:
     @staticmethod
     def GetVariable_Subset(ModelData, data, data_diag, data_static, varName):  
         variable = DataOperator_Class.GetData_Variable(ModelData, data, data_diag, data_static, varName)
-        [latCenter,lonCenter] = DataOperator_Class.LatLonBoundingBox_Center(campaign="TRACER")
+        [latCenter,lonCenter] = DataOperator_Class.LatLonBoundingBox_Center(region=ModelData.region)
         [latBounds, lonBounds] = DataOperator_Class.LatLonBoundingBox_Calculation(latCenter, lonCenter, radius_km=500)
         variableSubset, lat, lon = DataOperator_Class.LatLonBoundingBox_Subset(variable,latBounds, lonBounds)
     
@@ -410,7 +414,7 @@ class DataOperator_Class:
         data = ModelData.GetDataTimestep(t,printout=False)
         data_diag = ModelData.GetDataTimestep_diag(t,printout=False)
     
-        [latCenter,lonCenter] = DataOperator_Class.LatLonBoundingBox_Center(campaign="TRACER")
+        [latCenter,lonCenter] = DataOperator_Class.LatLonBoundingBox_Center(region=ModelData.region)
         [latBounds, lonBounds] = DataOperator_Class.LatLonBoundingBox_Calculation(latCenter, lonCenter, radius_km=500)
         dataSubset, lat, lon = DataOperator_Class.LatLonBoundingBox_Subset(data,latBounds, lonBounds)
         dataSubset_diag, _, _ = DataOperator_Class.LatLonBoundingBox_Subset(data_diag,latBounds, lonBounds)
