@@ -264,6 +264,13 @@ class RadarData_ARM_Class:
 
 # In[ ]:
 
+# ============================================================
+# RadarObservationMask_Class
+# ============================================================
+
+#libraries 
+import xarray as xr
+import pickle
 
 class RadarObservationMask_Class:
     @staticmethod
@@ -292,4 +299,31 @@ class RadarObservationMask_Class:
         print(f"Loaded mask: {outputFilePath}\n")
     
         return RadarDataMask
+
+    @staticmethod
+    def LoadRadarObservationLevels_MRMS(DirectoryManager, ModelData):
+        """
+        Load previously saved radar observation levels (pickle version).
+        """
+    
+        codeType = os.path.join("DataAnalysis", "Observation_Data")
+        dataType = "RadarData/RadarObservationMask"
+        outputDirectory = DirectoryManager.GetOutputDirectory(codeType, dataType)
+    
+        # Rebuild the path used during saving
+        outputPath = os.path.join(
+            outputDirectory,
+            f"{ModelData.region}_{ModelData.case}_spinup{ModelData.spinup_hours}hrs"
+        )
+    
+        outputFileName = "RadarObservationLevels.pkl"
+        outputFilePath = os.path.join(outputPath, outputFileName)
+    
+        # Load pickle
+        with open(outputFilePath, "rb") as file:
+            RadarObservationLevels = pickle.load(file)
+    
+        print(f"Loaded mask: {outputFilePath}\n")
+    
+        return RadarObservationLevels
 
