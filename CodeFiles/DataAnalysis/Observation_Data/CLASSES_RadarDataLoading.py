@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[2]:
 
 
 # ============================================================
@@ -93,6 +93,107 @@ class RadarData_MRMS_Class:
         radarData_t = radarData[varname]
     
         return radarData_t, nearest_filePath
+
+
+
+
+
+
+
+    # ============================================================
+    # External Static Functions for Loading 3D MRMS Data
+    # ============================================================
+
+    @staticmethod
+    def ConvertTimeStringtoDateTime(timeString):
+        """
+        Converts a time string like '2022-06-30_00.00.00' to a datetime object.
+        """
+        return datetime.strptime(timeString, '%Y-%m-%d_%H.%M.%S')
+
+    @staticmethod
+    def FixLatLon_RadarData(radarData):        
+        radarData = radarData.isel(latitude=slice(None, None, -1))
+    
+        radarData = radarData.assign_coords(
+            longitude=((radarData.longitude + 180) % 360) - 180
+        )
+        return radarData
+
+    @staticmethod
+    def ReturnLatLon_RadarData(radarData):
+        # Fix latitude order
+        radarData_fixed = radarData.isel(latitude=slice(None, None, -1))
+    
+        # Fix longitude convention
+        radarData_fixed = radarData_fixed.assign_coords(
+            longitude=radarData.longitude+360
+        )
+    
+        return radarData_fixed
+
+    @staticmethod
+    def InterpolateRadarData(radarData,modelData):
+        radarData = RadarData_MRMS_Class.FixLatLon_RadarData(radarData)
+        
+        radarData_interp = radarData.interp(
+            latitude=modelData.latitude,
+            longitude=modelData.longitude,
+            method="linear"
+        )
+        return radarData_interp
+
+    @staticmethod
+    def GetData(DirectoryManager,ModelData, t, RadarObservationLevels_string):
+        timeString = ModelData.timeStrings[t]
+        timeString_datetime = RadarData_MRMS_Class.ConvertTimeStringtoDateTime(timeString)
+
+        #date string
+
+        #LOADING RADAR CLASS dateString
+        if ModelData.spinup_hours == "0" and ModelData.region == "TRACER":
+            dateString = '2022-06-30_2022-07-03'
+        else:
+            dateString = f"{ModelData.simulationDates[0]}_{ModelData.simulationDates[-1]}"
+    
+        #Loading Model Data
+        modelRadarData_NSSL = ModelData.GetDataTimestep_diag(t)["refl10cm_1km"]
+        
+        #Loading Observational Radar
+        RadarData_MRMS = RadarData_MRMS_Class(ModelData,
+                                              fileDirectory=os.path.join(DirectoryManager.dataDirectory,
+                                                                         "Observation_Data/TRACER/MRMS_RadarData",
+                                                                         dateString,
+                                                                         f"MergedReflectivityQC_{RadarObservationLevels_string}"))
+        radarData, nearestFilePath = RadarData_MRMS.LoadClosestMRMSFile(target_time=timeString_datetime)
+        radarData=radarData.isel(time=0)
+        radarData_interp = RadarData_MRMS_Class.InterpolateRadarData(radarData=radarData, modelData=modelRadarData_NSSL)
+    
+        return radarData_interp
+
+    @staticmethod
+    def GetData_AllZLevels(DirectoryManager,ModelData, t, RadarObservationLevels):
+    
+        # Format MRMS folder strings (e.g., "0000.50", "0001.00")
+        RadarObservationLevels_strings = [
+            f"0{val:04.2f}" if val < 10 else f"{val:05.2f}"
+            for val in RadarObservationLevels
+        ]
+    
+        radarList = []
+    
+        for k, levelStr in enumerate(RadarObservationLevels_strings):
+    
+            # Get interpolated (lat,lon) DataArray
+            radarData_interp = RadarData_MRMS_Class.GetData(DirectoryManager,ModelData, t, levelStr)
+    
+            # Store it
+            radarList.append(radarData_interp)
+    
+        # Stack into a single 3D DataArray with "height" dimension
+        radarData = xr.concat(radarList, dim="heightAboveSea")
+        radarData = radarData.rename(f"MergedReflectivityQC_{RadarObservationLevels_strings[0]}-{RadarObservationLevels_strings[-1]}")
+        return radarData
 
 
 # In[ ]:
@@ -263,6 +364,7 @@ class RadarData_ARM_Class:
 
 
 # In[ ]:
+
 
 # ============================================================
 # RadarObservationMask_Class
