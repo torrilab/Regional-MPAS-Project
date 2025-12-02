@@ -366,6 +366,41 @@ def SnapLimitsToTicks(axes, dim="x"):
             hi_tick = ticks[ticks >= hi][0]
             ax.set_ylim(lo_tick, hi_tick)
 
+def SetEvenTicks(axes, dim="x", n_ticks=4, decimals=1, pad_frac=0.05):
+    """
+    Set evenly spaced ticks spanning current axis limits.
+    Ensures at least two distinct ticks even for near-zero ranges.
+    """
+    if not isinstance(axes, (list, tuple, np.ndarray)):
+        axes = [axes]
+
+    for ax in axes:
+        if dim == "x":
+            lo, hi = ax.get_xlim()
+        else:
+            lo, hi = ax.get_ylim()
+
+        # --- handle flat or extremely narrow ranges ---
+        span = hi - lo
+        if np.isclose(span, 0) or span < 1e-12:
+            pad = max(abs(lo) * pad_frac, pad_frac)
+            lo, hi = lo - pad, hi + pad
+            span = hi - lo
+
+        # --- compute ticks without rounding first ---
+        ticks = np.linspace(lo, hi, n_ticks)
+
+        # avoid collapse after rounding
+        ticks_rounded = np.round(ticks, decimals)
+        if len(np.unique(ticks_rounded)) < 2:
+            # fallback to higher precision if all identical after rounding
+            ticks_rounded = np.round(ticks, decimals + 2)
+
+        if dim == "x":
+            ax.set_xticks(ticks_rounded)
+        else:
+            ax.set_yticks(ticks_rounded)
+            
 # In[3]:
 
 
