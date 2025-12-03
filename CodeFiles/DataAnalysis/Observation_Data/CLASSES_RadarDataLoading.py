@@ -151,10 +151,14 @@ class RadarData_MRMS_Class:
         #date string
 
         #LOADING RADAR CLASS dateString
-        if ModelData.spinup_hours == "0" and ModelData.region == "TRACER":
-            dateString = '2022-06-30_2022-07-03'
+        if int(ModelData.spinup_hours) <= 0 and ModelData.region == "TRACER":
+            if ModelData.case == "WET":
+                dateString = '2022-06-30_2022-07-03'
+            elif ModelData.case == "DIURNAL":
+                dateString = '2022-06-21_2022-06-24'
         else:
             dateString = f"{ModelData.simulationDates[0]}_{ModelData.simulationDates[-1]}"
+
     
         #Loading Model Data
         modelRadarData_NSSL = ModelData.GetDataTimestep_diag(t)["refl10cm_1km"]
