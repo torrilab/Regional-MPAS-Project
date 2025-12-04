@@ -14,9 +14,12 @@ import os
 
 #------------------------------------- python > 3.5
 import glob
+import subprocess
+from tqdm import tqdm
 
 PATH = '/glade/derecho/scratch/aroseman'
 files = [file for file in glob.glob(PATH + '/**/*.nc', recursive=True)]
 
-for f in files:
-   os.system("ncdump -h "+f)
+for f in tqdm(files, total=len(files)):
+   #os.system("ncdump -h "+f) #option 1 may be slow
+   subprocess.run(["ncdump", "-h", f], capture_output=True) #option 2 should be faster
