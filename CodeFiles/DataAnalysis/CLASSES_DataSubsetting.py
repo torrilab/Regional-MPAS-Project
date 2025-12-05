@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[4]:
+# In[1]:
 
 
 # ============================================================
@@ -108,5 +108,69 @@ class DataSubsetting_Class:
             }
         )
 
+        return subset
+        
+    @staticmethod
+    def SubsetDataRegion_Curvilinear(data, ModelData):
+        """
+        Subset an xarray DataArray or Dataset using 2-D curvilinear latitude/longitude grids.
+        Works for Stage IV, ST2, ST4, MRMS, etc.
+        """
+    
+        # -------------------------------
+        # 1. Identify coordinate names
+        # -------------------------------
+        if "latitude" in data.coords:
+            lat_name = "latitude"
+        elif "lat" in data.coords:
+            lat_name = "lat"
+        else:
+            raise KeyError("Curvilinear subset: No 'latitude' coordinate found.")
+    
+        if "longitude" in data.coords:
+            lon_name = "longitude"
+        elif "lon" in data.coords:
+            lon_name = "lon"
+        else:
+            raise KeyError("Curvilinear subset: No 'longitude' coordinate found.")
+    
+        lat2d = data[lat_name].values
+        lon2d = data[lon_name].values
+    
+        # -------------------------------
+        # 2. Target bounding box
+        # -------------------------------
+        lat_min = float(ModelData.latitude.min())
+        lat_max = float(ModelData.latitude.max())
+        lon_min = float(ModelData.longitude.min())
+        lon_max = float(ModelData.longitude.max())
+    
+        # 0–360 longitude fix
+        if lon2d.max() > 180:
+            if lon_min < 0: lon_min += 360
+            if lon_max < 0: lon_max += 360
+    
+        # -------------------------------
+        # 3. Build mask (NumPy)
+        # -------------------------------
+        mask_np = (
+            (lat2d >= lat_min) & (lat2d <= lat_max) &
+            (lon2d >= lon_min) & (lon2d <= lon_max)
+        )
+    
+        # -------------------------------
+        # 4. Convert mask to DataArray
+        # -------------------------------
+        mask_xr = xr.DataArray(
+            mask_np,
+            dims=data[lat_name].dims,
+            coords=data[lat_name].coords
+        )
+    
+        # -------------------------------
+        # 5. Apply mask
+        # -------------------------------
+        subset = data.where(mask_xr, drop=True)
+    
         return subset
 
