@@ -590,7 +590,7 @@ import pickle
 
 class RadarObservationMask_Class:
     @staticmethod
-    def LoadMaskData_MRMS(DirectoryManager, ModelData):
+    def LoadMaskData(DirectoryManager, ModelData):
         """
         Load a previously saved radar observation mask for timestep t.
         """
@@ -616,32 +616,8 @@ class RadarObservationMask_Class:
     
         return RadarDataMask
 
-    @staticmethod
-    def LoadMaskData_PRECIP(DirectoryManager, ModelData): #this is actually a copy of the function above (both work for both MRMS and PRECIP
-        """
-        Load a previously saved radar observation mask for timestep t.
-        """
-    
-        codeType = os.path.join("DataAnalysis", "Observation_Data")
-        dataType = "RadarData/RadarObservationMask"
-        outputDirectory = DirectoryManager.GetOutputDirectory(codeType, dataType)
-    
-        # Rebuild the directory path used in SaveMaskData
-        outputPath = os.path.join(
-            outputDirectory,
-            f"{ModelData.region}_{ModelData.case}_spinup{ModelData.spinup_hours}hrs"
-        )
-    
-        # Filename pattern must match the SaveMaskData naming
-        outputFileName = f"RadarObservationMask.nc"
-        outputFilePath = os.path.join(outputPath, outputFileName)
-    
-        # Load mask file
-        RadarDataMask = xr.load_dataarray(outputFilePath)
-    
-        print(f"Loaded mask: {outputFilePath}\n")
-    
-        return RadarDataMask
+    # Alias
+    LoadMaskData_MRMS = LoadMaskData
 
     @staticmethod
     def LoadRadarObservationLevels_MRMS(DirectoryManager, ModelData):
