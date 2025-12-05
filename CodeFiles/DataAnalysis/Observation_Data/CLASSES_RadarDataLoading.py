@@ -86,19 +86,13 @@ class RadarData_MRMS_Class:
         print(f"Closest file: {os.path.basename(nearest_filePath)} ({nearest_time})")
     
         # Load dataset
-        radarData = xr.load_dataset(nearest_filePath)
+        radarData = xr.open_dataset(nearest_filePath)
     
         # Extract variable automatically
         varname = list(radarData.data_vars.keys())[0]
         radarData_t = radarData[varname]
     
         return radarData_t, nearest_filePath
-
-
-
-
-
-
 
     # ============================================================
     # External Static Functions for Loading 3D MRMS Data
@@ -198,6 +192,222 @@ class RadarData_MRMS_Class:
         radarData = xr.concat(radarList, dim="heightAboveSea")
         radarData = radarData.rename(f"MergedReflectivityQC_{RadarObservationLevels_strings[0]}-{RadarObservationLevels_strings[-1]}")
         return radarData
+
+
+# #Example Loading:
+# if int(ModelData_NSSL.spinup_hours) <= 0 and ModelData_NSSL.region == "TRACER":
+#     if ModelData_NSSL.case == "WET":
+#         dateString = '2022-06-30_2022-07-03'
+#     elif ModelData_NSSL.case == "DIURNAL":
+#         dateString = '2022-06-21_2022-06-24'
+# else:
+#     dateString = f"{ModelData_NSSL.simulationDates[0]}_{ModelData_NSSL.simulationDates[-1]}"
+
+# RadarData_MRMS = RadarData_MRMS_Class(ModelData_NSSL,
+#                                       fileDirectory=os.path.join(DirectoryManager.dataDirectory,
+#                                                                  "Observation_Data/TRACER/MRMS_RadarData",
+#                                                                  dateString,
+#                                                                  "MergedReflectivityQC_01.00"))
+
+
+# In[1]:
+
+
+# ============================================================
+# RadarData_PRECIP_Class
+# ============================================================
+
+#libraries 
+import os,re
+
+import xarray as xr
+from datetime import datetime 
+import pandas as pd
+import numpy as np
+import pickle
+
+from scipy.spatial import Delaunay
+from scipy.interpolate import LinearNDInterpolator
+
+
+class RadarData_PRECIP_Class:
+    def __init__(self, ModelData, folderDirectory):
+        #data file reading
+        self.folderDirectory = folderDirectory
+        self.longitude,self.latitude,self.z_heights = self.GetCoordinates(ModelData)
+
+    # ------------------------------------------------------------
+    # Data Loading Functions
+    # ------------------------------------------------------------
+    # Internal Use
+    def ExtractDateTimeFromFileName(self, path):
+        """
+        Extract datetime from MRMS-style filename:
+        e.g., MRMSReflectivity_CONUS_TRACER_20220702-124438.nc
+        """
+        fname = os.path.basename(path)
+        m = re.search(r"_(\d{8})_(\d{6})\.nc$", fname)
+        if m:
+            date_str, time_str = m.groups()
+            return datetime.strptime(date_str + time_str, "%Y%m%d%H%M%S")
+        else:
+            return datetime.min  # fallback if no match
+
+    
+    @staticmethod
+    def ConvertTimeStringtoDateTime(timeString):
+        """
+        Converts a time string like '2022-06-30_00.00.00' to a datetime object.
+        """
+        return datetime.strptime(timeString, '%Y-%m-%d_%H.%M.%S')
+    
+    def GetFilePathList(self,yearmonthday):
+        """Return sorted list of MRMS NetCDF file paths and names."""
+        fileDirectory = os.path.join(self.folderDirectory,yearmonthday)
+        filePathList = [
+            os.path.join(fileDirectory, f)
+            for f in os.listdir(fileDirectory)
+            if f.endswith(".nc") and f.startswith("ncf")
+        ]
+    
+        # Sort chronologically using extracted datetimes
+        filePathList = sorted(filePathList, key=self.ExtractDateTimeFromFileName)
+        fileList = [os.path.basename(p) for p in filePathList]
+    
+        return filePathList, fileList
+    
+    def LoadClosestMRMSFile(self, timeString):
+        """
+        Find and load the MRMS NetCDF file closest to the given time.
+        """
+
+        target_time = self.ConvertTimeStringtoDateTime(timeString)
+        
+        yearmonthday = target_time.strftime("%Y%m%d")
+        target_time = pd.to_datetime(target_time)
+    
+        # Build sorted list of files
+        filePathList, fileList = self.GetFilePathList(yearmonthday)
+    
+        # Extract datetimes from filenames
+        file_times = [
+            self.ExtractDateTimeFromFileName(path)
+            for path in filePathList
+        ]
+    
+        # Convert to numpy datetime64 for proper subtraction
+        file_times_np = np.array(file_times, dtype="datetime64[ns]")
+        target_np = np.datetime64(target_time)
+    
+        # Find index of closest timestamp
+        deltas = np.abs(file_times_np - target_np)
+        nearest_index = deltas.argmin()
+    
+        nearest_time = file_times[nearest_index]
+        nearest_filePath = filePathList[nearest_index]
+    
+        print(f"Target time:  {target_time}")
+        print(f"Closest file: {os.path.basename(nearest_filePath)} ({nearest_time})")
+    
+        # Load dataset
+        radarData = xr.open_dataset(nearest_filePath)
+    
+        # Extract variable automatically
+        radarData_t = radarData["DBZ_F_L2"]
+    
+        return radarData_t, nearest_filePath
+
+    def GetCoordinates(self,ModelData):
+        timeString = ModelData.timeStrings[0]
+        radarData_t,_ = self.LoadClosestMRMSFile(timeString)
+        longitude = radarData_t.lon0.data
+        latitude = radarData_t.lat0.data
+        z_heights = radarData_t.z0.data
+        return longitude,latitude,z_heights
+
+    #============================================================
+    # External Static Functions for Loading 3D MRMS Data
+    #============================================================
+    
+    def InterpolateRadarData(self, radarData_tz, ModelData):
+    
+        # --- Setup output folder ---
+        codeType = os.path.join("DataAnalysis", "Observation_Data")
+        dataType = "RadarData"
+        outputDirectory = DirectoryManager.GetOutputDirectory(codeType, dataType)
+        
+        interpPath = os.path.join(
+            outputDirectory, 
+            "RadarObservationMask",
+            f"{ModelData.region}_{ModelData.case}_{ModelData.spinup_hours}hrs"
+        )
+        os.makedirs(interpPath, exist_ok=True)
+    
+        triPath = os.path.join(interpPath, "triangulation.pkl")
+    
+        # ============================================================
+        # 1. Load OR Build triangulation based only on (lat0, lon0)
+        # ============================================================
+        lat_r = radarData_tz.lat0.values
+        lon_r = radarData_tz.lon0.values
+        pts_radar = np.column_stack((lat_r.ravel(), lon_r.ravel()))
+    
+        if os.path.exists(triPath):
+            print(f"Loading cached triangulation: {triPath}")
+            with open(triPath, "rb") as f:
+                tri = pickle.load(f)
+        else:
+            print("Building triangulation (slow, one-time)...")
+            tri = Delaunay(pts_radar)
+            with open(triPath, "wb") as f:
+                pickle.dump(tri, f)
+            print(f"Saved triangulation to {triPath}")
+    
+        # ============================================================
+        # 2. Build interpolator
+        # ============================================================
+        vals_radar = radarData_tz.values.ravel()
+        interp_func = LinearNDInterpolator(tri, vals_radar) #Linear interpolation over 2D Delaunay triangles
+    
+        # ============================================================
+        # 3. Interpolate onto model grid
+        # ============================================================
+        lat_m_1d = ModelData.latitude
+        lon_m_1d = ModelData.longitude
+        lon_m, lat_m = np.meshgrid(lon_m_1d, lat_m_1d)
+    
+        pts_model = np.column_stack((lat_m.ravel(), lon_m.ravel()))
+        out_vals = interp_func(pts_model).reshape(lat_m.shape) 
+    
+        # Return DataArray
+        return xr.DataArray(
+            out_vals,
+            dims=("y", "x"),
+            coords={
+                "y": lat_m_1d,
+                "x": lon_m_1d,
+                "latitude": (("y", "x"), lat_m),
+                "longitude": (("y", "x"), lon_m),
+            }
+        )
+    
+    def GetData(self, DirectoryManager, ModelData, t, z_km=1):
+        timeString = ModelData.timeStrings[t]
+        timeString_datetime = self.ConvertTimeStringtoDateTime(timeString)
+    
+        # Load model data
+        modelRadarData_NSSL = ModelData.GetDataTimestep_diag(t)["refl10cm_1km"]
+    
+        # Load closest radar file for this time
+        radarData, nearestFilePath = self.LoadClosestMRMSFile(timeString)
+        radarData_t = radarData.isel(time=0)
+        
+        z_idx = radarData_t.z0.to_index().get_indexer([z_km], method="nearest")[0]
+        radarData_tz = radarData_t.isel(z0 = z_idx)
+        
+        # Interpolate to MPAS grid
+        radarData_interp = RadarData_PRECIP.InterpolateRadarData(radarData_tz , ModelData_NSSL)
+        return radarData_interp, z_idx
 
 
 # In[ ]:
@@ -381,6 +591,33 @@ import pickle
 class RadarObservationMask_Class:
     @staticmethod
     def LoadMaskData_MRMS(DirectoryManager, ModelData):
+        """
+        Load a previously saved radar observation mask for timestep t.
+        """
+    
+        codeType = os.path.join("DataAnalysis", "Observation_Data")
+        dataType = "RadarData/RadarObservationMask"
+        outputDirectory = DirectoryManager.GetOutputDirectory(codeType, dataType)
+    
+        # Rebuild the directory path used in SaveMaskData
+        outputPath = os.path.join(
+            outputDirectory,
+            f"{ModelData.region}_{ModelData.case}_spinup{ModelData.spinup_hours}hrs"
+        )
+    
+        # Filename pattern must match the SaveMaskData naming
+        outputFileName = f"RadarObservationMask.nc"
+        outputFilePath = os.path.join(outputPath, outputFileName)
+    
+        # Load mask file
+        RadarDataMask = xr.load_dataarray(outputFilePath)
+    
+        print(f"Loaded mask: {outputFilePath}\n")
+    
+        return RadarDataMask
+
+    @staticmethod
+    def LoadMaskData_PRECIP(DirectoryManager, ModelData): #this is actually a copy of the function above (both work for both MRMS and PRECIP
         """
         Load a previously saved radar observation mask for timestep t.
         """
