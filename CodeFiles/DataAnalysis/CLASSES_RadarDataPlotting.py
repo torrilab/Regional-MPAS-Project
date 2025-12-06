@@ -171,7 +171,12 @@ class RadarPlotting_Class:
                        tick_fontsize=9,
                        formatters=True):
         # Set extent to your data range (forces lat/lon ticks)
-        axis.set_extent([min(lon), max(lon), min(lat), max(lat)], crs=ccrs.PlateCarree())
+        # axis.set_extent([min(lon), max(lon), min(lat), max(lat)], crs=ccrs.PlateCarree())
+        # Handle 2D or 1D lat/lon arrays
+        lon_min = float(np.nanmin(lon)); lon_max = float(np.nanmax(lon))
+        lat_min = float(np.nanmin(lat)); lat_max = float(np.nanmax(lat))
+    
+        axis.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
         
         #Add lat/lon ticks with degrees
         # axis.set_xticks(np.round(np.linspace(lon.min(), lon.max(), n_ticks), decimal_points), 
@@ -238,7 +243,7 @@ class RadarPlotting_Class:
         RadarPlotting_Class.FormatGeoTicks(axis, lon,lat)
         
         #LABELS
-        title = f"{dataName} – {timeTitle} – 1 km"
+        title = f"{dataName} – {timeTitle}"
         axis.set_title(title, fontsize=10);
         return contourPlot
 

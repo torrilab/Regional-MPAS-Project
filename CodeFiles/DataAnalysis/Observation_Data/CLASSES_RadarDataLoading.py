@@ -329,7 +329,7 @@ class RadarData_PRECIP_Class:
     # External Static Functions for Loading 3D MRMS Data
     #============================================================
     
-    def InterpolateRadarData(self, radarData_tz, ModelData):
+    def InterpolateRadarData(self, radarData_tz, ModelData,DirectoryManager):
     
         # --- Setup output folder ---
         codeType = os.path.join("DataAnalysis", "Observation_Data")
@@ -390,6 +390,18 @@ class RadarData_PRECIP_Class:
                 "longitude": (("y", "x"), lon_m),
             }
         )
+
+    def GetData_AllZLevels(self, DirectoryManager, ModelData, t):
+        timeString = ModelData.timeStrings[t]
+        timeString_datetime = self.ConvertTimeStringtoDateTime(timeString)
+    
+        # Load model data
+        modelRadarData_NSSL = ModelData.GetDataTimestep_diag(t)["refl10cm_1km"]
+    
+        # Load closest radar file for this time
+        radarData, nearestFilePath = self.LoadClosestMRMSFile(timeString)
+        radarData_t = radarData.isel(time=0)
+        return radarData_t, nearestFilePath
     
     def GetData(self, DirectoryManager, ModelData, t, z_km=1):
         timeString = ModelData.timeStrings[t]
@@ -401,13 +413,14 @@ class RadarData_PRECIP_Class:
         # Load closest radar file for this time
         radarData, nearestFilePath = self.LoadClosestMRMSFile(timeString)
         radarData_t = radarData.isel(time=0)
-        
-        z_idx = radarData_t.z0.to_index().get_indexer([z_km], method="nearest")[0]
+
+        z_levels = radarData_t.z0
+        z_idx = z_levels.to_index().get_indexer([z_km], method="nearest")[0]
         radarData_tz = radarData_t.isel(z0 = z_idx)
         
         # Interpolate to MPAS grid
-        radarData_interp = RadarData_PRECIP.InterpolateRadarData(radarData_tz , ModelData_NSSL)
-        return radarData_interp, z_idx
+        radarData_interp = self.InterpolateRadarData(radarData_tz , ModelData, DirectoryManager)
+        return radarData_interp,z_idx,z_levels, nearestFilePath
 
 
 # In[ ]:
