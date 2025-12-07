@@ -226,8 +226,9 @@ import pandas as pd
 import numpy as np
 import pickle
 
-from scipy.spatial import Delaunay
-from scipy.interpolate import LinearNDInterpolator
+# from scipy.spatial import Delaunay
+# from scipy.interpolate import LinearNDInterpolator
+import xesmf as xe
 
 
 class RadarData_PRECIP_Class:
@@ -328,69 +329,227 @@ class RadarData_PRECIP_Class:
     #============================================================
     # External Static Functions for Loading 3D MRMS Data
     #============================================================
+        
+    # def InterpolateRadarData(self, radarData_tz, ModelData,DirectoryManager):
     
-    def InterpolateRadarData(self, radarData_tz, ModelData,DirectoryManager):
+    #     # --- Setup output folder ---
+    #     codeType = os.path.join("DataAnalysis", "Observation_Data")
+    #     dataType = "RadarData"
+    #     outputDirectory = DirectoryManager.GetOutputDirectory(codeType, dataType)
+        
+    #     interpPath = os.path.join(
+    #         outputDirectory, 
+    #         "RadarObservationMask",
+    #         f"{ModelData.region}_{ModelData.case}_{ModelData.spinup_hours}hrs"
+    #     )
+    #     os.makedirs(interpPath, exist_ok=True)
     
-        # --- Setup output folder ---
+    #     triPath = os.path.join(interpPath, "triangulation.pkl")
+    
+    #     # ============================================================
+    #     # 1. Load OR Build triangulation based only on (lat0, lon0)
+    #     # ============================================================
+    #     lat_r = radarData_tz.lat0.values
+    #     lon_r = radarData_tz.lon0.values
+    #     pts_radar = np.column_stack((lat_r.ravel(), lon_r.ravel()))
+    
+    #     if os.path.exists(triPath):
+    #         print(f"Loading cached triangulation: {triPath}")
+    #         with open(triPath, "rb") as f:
+    #             tri = pickle.load(f)
+    #     else:
+    #         print("Building triangulation (slow, one-time)...")
+    #         tri = Delaunay(pts_radar)
+    #         with open(triPath, "wb") as f:
+    #             pickle.dump(tri, f)
+    #         print(f"Saved triangulation to {triPath}")
+    
+    #     # ============================================================
+    #     # 2. Build interpolator
+    #     # ============================================================
+    #     vals_radar = radarData_tz.values.ravel()
+    #     interp_func = LinearNDInterpolator(tri, vals_radar) #Linear interpolation over 2D Delaunay triangles
+    
+    #     # ============================================================
+    #     # 3. Interpolate onto model grid
+    #     # ============================================================
+    #     lat_m_1d = ModelData.latitude
+    #     lon_m_1d = ModelData.longitude
+    #     lon_m, lat_m = np.meshgrid(lon_m_1d, lat_m_1d)
+    
+    #     pts_model = np.column_stack((lat_m.ravel(), lon_m.ravel()))
+    #     out_vals = interp_func(pts_model).reshape(lat_m.shape) 
+    
+    #     # Return DataArray
+    #     return xr.DataArray(
+    #         out_vals,
+    #         dims=("y", "x"),
+    #         coords={
+    #             "y": lat_m_1d,
+    #             "x": lon_m_1d,
+    #             "latitude": (("y", "x"), lat_m),
+    #             "longitude": (("y", "x"), lon_m),
+    #         }
+    #     )
+    def InterpolateRadarData2D(self, radarData_xy, ModelData, DirectoryManager):
+        """
+        Interpolate a single-level 2D radar field (y, x) onto the MPAS latitude/longitude grid.
+        radarData_xy must contain coords lat0(y,x) and lon0(y,x).
+        """
+    
+        # ===============================
+        # 1. Build output directory paths
+        # ===============================
         codeType = os.path.join("DataAnalysis", "Observation_Data")
         dataType = "RadarData"
         outputDirectory = DirectoryManager.GetOutputDirectory(codeType, dataType)
-        
+    
         interpPath = os.path.join(
-            outputDirectory, 
+            outputDirectory,
             "RadarObservationMask",
             f"{ModelData.region}_{ModelData.case}_{ModelData.spinup_hours}hrs"
         )
         os.makedirs(interpPath, exist_ok=True)
     
-        triPath = os.path.join(interpPath, "triangulation.pkl")
+        weightPath = os.path.join(interpPath, "xesmf_weights_2D.nc")
     
-        # ============================================================
-        # 1. Load OR Build triangulation based only on (lat0, lon0)
-        # ============================================================
-        lat_r = radarData_tz.lat0.values
-        lon_r = radarData_tz.lon0.values
-        pts_radar = np.column_stack((lat_r.ravel(), lon_r.ravel()))
+        # ===============================
+        # 2. Build INPUT grid (2D only)
+        # ===============================
+        ds_in = xr.Dataset(
+            {
+                "var": (("y", "x"), radarData_xy.values)
+            },
+            coords={
+                "lat": (("y", "x"), radarData_xy.lat0.values),
+                "lon": (("y", "x"), radarData_xy.lon0.values),
+            }
+        )
     
-        if os.path.exists(triPath):
-            print(f"Loading cached triangulation: {triPath}")
-            with open(triPath, "rb") as f:
-                tri = pickle.load(f)
-        else:
-            print("Building triangulation (slow, one-time)...")
-            tri = Delaunay(pts_radar)
-            with open(triPath, "wb") as f:
-                pickle.dump(tri, f)
-            print(f"Saved triangulation to {triPath}")
+        # ===============================
+        # 3. Build OUTPUT grid (MPAS lat/lon)
+        # ===============================
+        lat_m = ModelData.latitude
+        lon_m = ModelData.longitude
+        lat2d, lon2d = np.meshgrid(lat_m, lon_m, indexing="ij")
     
-        # ============================================================
-        # 2. Build interpolator
-        # ============================================================
-        vals_radar = radarData_tz.values.ravel()
-        interp_func = LinearNDInterpolator(tri, vals_radar) #Linear interpolation over 2D Delaunay triangles
+        ds_out = xr.Dataset(
+            coords={
+                "lat": (("y", "x"), lat2d),
+                "lon": (("y", "x"), lon2d),
+            }
+        )
     
-        # ============================================================
-        # 3. Interpolate onto model grid
-        # ============================================================
-        lat_m_1d = ModelData.latitude
-        lon_m_1d = ModelData.longitude
-        lon_m, lat_m = np.meshgrid(lon_m_1d, lat_m_1d)
+        # ===============================
+        # 4. Create or reuse regridder
+        # ===============================
+        regridder = xe.Regridder(
+            ds_in,
+            ds_out,
+            method="bilinear",
+            filename=weightPath,
+            reuse_weights=os.path.exists(weightPath),
+            unmapped_to_nan=True
+        )
     
-        pts_model = np.column_stack((lat_m.ravel(), lon_m.ravel()))
-        out_vals = interp_func(pts_model).reshape(lat_m.shape) 
+        # ===============================
+        # 5. Interpolate (2D only)
+        # ===============================
+        out = regridder(ds_in["var"])
     
-        # Return DataArray
+        # ===============================
+        # 6. Return 2D DataArray
+        # ===============================
         return xr.DataArray(
-            out_vals,
+            out.values,
             dims=("y", "x"),
             coords={
-                "y": lat_m_1d,
-                "x": lon_m_1d,
-                "latitude": (("y", "x"), lat_m),
-                "longitude": (("y", "x"), lon_m),
+                "y": lat_m,
+                "x": lon_m,
+                "latitude": (("y", "x"), lat2d),
+                "longitude": (("y", "x"), lon2d),
             }
         )
 
+    
+    def InterpolateRadarData3D(self, radarData_tz, ModelData, DirectoryManager):
+    
+        # ===============================
+        # 1. Build output directory paths
+        # ===============================
+        codeType = os.path.join("DataAnalysis", "Observation_Data")
+        dataType = "RadarData"
+        outputDirectory = DirectoryManager.GetOutputDirectory(codeType, dataType)
+    
+        interpPath = os.path.join(
+            outputDirectory,
+            "RadarObservationMask",
+            f"{ModelData.region}_{ModelData.case}_{ModelData.spinup_hours}hrs"
+        )
+        os.makedirs(interpPath, exist_ok=True)
+    
+        weightPath = os.path.join(interpPath, "xesmf_weights.nc")
+    
+        # ===============================
+        # 2. Build INPUT grid and data
+        # radarData_tz is shape (z, y, x)
+        # ===============================
+        ds_in = xr.Dataset(
+            {
+                "var": (("z", "y", "x"), radarData_tz.values)
+            },
+            coords={
+                "z": radarData_tz.z0.values if "z0" in radarData_tz.coords else np.arange(radarData_tz.shape[0]),
+                "lat": (("y", "x"), radarData_tz.lat0.values),
+                "lon": (("y", "x"), radarData_tz.lon0.values),
+            }
+        )
+    
+        # ===============================
+        # 3. Build OUTPUT grid
+        # ===============================
+        lat_m = ModelData.latitude
+        lon_m = ModelData.longitude
+        lat2d, lon2d = np.meshgrid(lat_m, lon_m, indexing="ij")
+    
+        ds_out = xr.Dataset(
+            coords={
+                "lat": (("y", "x"), lat2d),
+                "lon": (("y", "x"), lon2d),
+            }
+        )
+    
+        # ===============================
+        # 4. Create or reuse regridder
+        # ===============================
+        regridder = xe.Regridder(
+            ds_in, ds_out, method="bilinear",
+            filename=weightPath,
+            reuse_weights=os.path.exists(weightPath),
+            unmapped_to_nan=True
+        )
+    
+        # ===============================
+        # 5. FULLY VECTORIZED regridding
+        # xESMF handles the z dimension automatically
+        # ===============================
+        out = regridder(ds_in["var"])
+    
+        # ===============================
+        # 6. Return 3D DataArray
+        # ===============================
+        return xr.DataArray(
+            out.values,
+            dims=("z", "y", "x"),
+            coords={
+                "z": ds_in.z,
+                "y": lat_m,
+                "x": lon_m,
+                "latitude": (("y", "x"), lat2d),
+                "longitude": (("y", "x"), lon2d),
+            }
+        )
+        
     def GetData_AllZLevels(self, DirectoryManager, ModelData, t):
         timeString = ModelData.timeStrings[t]
         timeString_datetime = self.ConvertTimeStringtoDateTime(timeString)
@@ -417,10 +576,7 @@ class RadarData_PRECIP_Class:
         z_levels = radarData_t.z0
         z_idx = z_levels.to_index().get_indexer([z_km], method="nearest")[0]
         radarData_tz = radarData_t.isel(z0 = z_idx)
-        
-        # Interpolate to MPAS grid
-        radarData_interp = self.InterpolateRadarData(radarData_tz , ModelData, DirectoryManager)
-        return radarData_interp,z_idx,z_levels, nearestFilePath
+        return radarData_tz,z_idx,z_levels, nearestFilePath
 
 
 # In[ ]:
