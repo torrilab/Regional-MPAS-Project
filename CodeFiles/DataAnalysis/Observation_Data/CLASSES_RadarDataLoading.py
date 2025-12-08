@@ -145,11 +145,15 @@ class RadarData_MRMS_Class:
         #date string
 
         #LOADING RADAR CLASS dateString
-        if int(ModelData.spinup_hours) <= 0 and ModelData.region == "TRACER":
-            if ModelData.case == "WET":
-                dateString = '2022-06-30_2022-07-03'
-            elif ModelData.case == "DIURNAL":
-                dateString = '2022-06-21_2022-06-24'
+        if int(ModelData.spinup_hours) <= 0:
+            if ModelData.region == "TRACER":
+                if ModelData.case == "WET":
+                    dateString = '2022-06-30_2022-07-03'
+                elif ModelData.case == "DIURNAL":
+                    dateString = '2022-06-21_2022-06-24'
+            elif ModelData.region == "Hawaii":
+                if ModelData.case == "TRADES":
+                    dateString = "2022-08-07_2022-08-10"
         else:
             dateString = f"{ModelData.simulationDates[0]}_{ModelData.simulationDates[-1]}"
 
@@ -160,7 +164,7 @@ class RadarData_MRMS_Class:
         #Loading Observational Radar
         RadarData_MRMS = RadarData_MRMS_Class(ModelData,
                                               fileDirectory=os.path.join(DirectoryManager.dataDirectory,
-                                                                         "Observation_Data/TRACER/MRMS_RadarData",
+                                                                         f"Observation_Data/{ModelData.region}/MRMS_RadarData",
                                                                          dateString,
                                                                          f"MergedReflectivityQC_{RadarObservationLevels_string}"))
         radarData, nearestFilePath = RadarData_MRMS.LoadClosestMRMSFile(target_time=timeString_datetime)
@@ -208,6 +212,12 @@ class RadarData_MRMS_Class:
 #                                                                  "Observation_Data/TRACER/MRMS_RadarData",
 #                                                                  dateString,
 #                                                                  "MergedReflectivityQC_01.00"))
+
+
+# In[ ]:
+
+
+
 
 
 # In[1]:
