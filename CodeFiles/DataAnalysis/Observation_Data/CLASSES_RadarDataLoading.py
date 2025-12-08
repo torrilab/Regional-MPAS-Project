@@ -226,12 +226,17 @@ import pandas as pd
 import numpy as np
 import pickle
 
-# from scipy.spatial import Delaunay
-# from scipy.interpolate import LinearNDInterpolator
-import xesmf as xe
-
 
 class RadarData_PRECIP_Class:
+    _xe = None
+
+    @classmethod
+    def _GetXESMF(cls):
+        if cls._xe is None:
+            import xesmf
+            cls._xe = xesmf
+        return cls._xe
+        
     def __init__(self, ModelData, folderDirectory):
         #data file reading
         self.folderDirectory = folderDirectory
@@ -392,6 +397,7 @@ class RadarData_PRECIP_Class:
     #         }
     #     )
     def InterpolateRadarData2D(self, radarData_xy, ModelData, DirectoryManager):
+        xe = self._GetXESMF()
         """
         Interpolate a single-level 2D radar field (y, x) onto the MPAS latitude/longitude grid.
         radarData_xy must contain coords lat0(y,x) and lon0(y,x).
@@ -411,7 +417,7 @@ class RadarData_PRECIP_Class:
         )
         os.makedirs(interpPath, exist_ok=True)
     
-        weightPath = os.path.join(interpPath, "xesmf_weights_2D.nc")
+        weightPath = os.path.join(interpPath, f"xesmf_weights_2D_{ModelData.region}_{ModelData.case}.nc")
     
         # ===============================
         # 2. Build INPUT grid (2D only)
@@ -473,6 +479,7 @@ class RadarData_PRECIP_Class:
 
     
     def InterpolateRadarData3D(self, radarData_tz, ModelData, DirectoryManager):
+        xe = self._GetXESMF()
     
         # ===============================
         # 1. Build output directory paths
@@ -488,7 +495,7 @@ class RadarData_PRECIP_Class:
         )
         os.makedirs(interpPath, exist_ok=True)
     
-        weightPath = os.path.join(interpPath, "xesmf_weights.nc")
+        weightPath = os.path.join(interpPath, f"xesmf_weights_3D_{ModelData.region}_{ModelData.case}.nc")
     
         # ===============================
         # 2. Build INPUT grid and data
