@@ -107,7 +107,9 @@ class RadarData_MRMS_Class:
 
     @staticmethod
     def FixLatLon_RadarData(radarData):        
-        radarData = radarData.isel(latitude=slice(None, None, -1))
+        # radarData = radarData.isel(latitude=slice(None, None, -1)) #broken in this version
+        radarData = radarData.sortby("latitude")
+
     
         radarData = radarData.assign_coords(
             longitude=((radarData.longitude + 180) % 360) - 180
@@ -117,7 +119,8 @@ class RadarData_MRMS_Class:
     @staticmethod
     def ReturnLatLon_RadarData(radarData):
         # Fix latitude order
-        radarData_fixed = radarData.isel(latitude=slice(None, None, -1))
+        # radarData_fixed = radarData.isel(latitude=slice(None, None, -1)) #broken in this version
+        radarData = radarData.sortby("latitude", ascending=False)
     
         # Fix longitude convention
         radarData_fixed = radarData_fixed.assign_coords(

@@ -314,7 +314,7 @@ class StructuredModelData_Class:
 # # ModelData.GetDataTimestep_diag(t=100,varName='refl10cm')
 
 
-# In[2]:
+# In[1]:
 
 
 # ============================================================
@@ -334,7 +334,7 @@ class DataOperator_Class:
         elif region == "PRECIP":
             (latCenter, lonCenter) = 24.82, 120.91
         elif region == "Hawaii":
-            (latCenter, lonCenter) = 21.133, 157.180 
+            (latCenter, lonCenter) = 21.133, -157.180 
         return latCenter,lonCenter
 
     @staticmethod
