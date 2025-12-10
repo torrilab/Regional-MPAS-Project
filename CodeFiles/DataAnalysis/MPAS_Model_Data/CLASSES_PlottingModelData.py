@@ -3,6 +3,7 @@
 
 # In[ ]:
 
+
 # ============================================================
 # FigurePlotting_Class 
 # ============================================================
@@ -20,6 +21,180 @@ class FigurePlotting_Class:
         plt.close(fig)
         print(f"Saved uniform image: {outputFilePath}")
 
+
+# In[ ]:
+
+
+# ============================================================
+# LandMaskPlotting_Class 
+# ============================================================
+
+#IMPORTING LIBRARIES
+import xarray as xr
+import matplotlib.pyplot as plt
+import numpy as np
+
+class LandMaskPlotting_Class:
+    def __init__(self, ModelData):
+        self.lm,self.lm_x,self.lm_y = self.GetLandMask_Mean(ModelData)
+        self.regions_x = self.FindRegions(self.lm_x.values) 
+        self.regions_y = self.FindRegions(self.lm_y.values)
+        self.Longitude, self.Latitude = self.GetLongitudeLatitude(ModelData)
+        self.LongitudePairs,self.LatitudePairs = self.LonLatRegions(self.regions_x, self.regions_y)
+
+    # ============================================================
+    # Internal Functions
+    # ============================================================
+
+    def GetLandMask_Mean(self,ModelData):
+        lm = ModelData.staticData['landmask']
+        lm = lm.where(lm==1)
+    
+        lm_x = lm.mean(dim="latitude")
+        lm_y = lm.mean(dim="longitude")
+        return lm, lm_x, lm_y   
+
+    def FindRegions(self,array):
+        values = array
+        island = np.isfinite(values)
+    
+        diffmask = np.diff(island.astype(int))
+    
+        starts = np.where(diffmask == 1)[0] + 1
+        ends   = np.where(diffmask == -1)[0]
+    
+        if island[0]:
+            starts = np.r_[0, starts]
+    
+        if island[-1]:
+            ends = np.r_[ends, len(island) - 1]
+    
+        regions = list(zip(starts, ends))
+        return regions
+
+    def GetLongitudeLatitude(self,ModelData):
+        Longitude,Latitude=ModelData.longitude, ModelData.latitude
+        return Longitude,Latitude
+
+    def LonLatRegions(self, regions_x,regions_y):
+        
+        Pairs_x = [
+            (self.Longitude[int(Start)], self.Longitude[int(End)])
+            for Start, End in regions_x
+        ]
+        Pairs_y = [
+            (self.Latitude[int(Start)], self.Latitude[int(End)])
+            for Start, End in regions_y
+        ]
+        
+        return Pairs_x,Pairs_y
+
+    # ============================================================
+    # Plotting Functions
+    # ============================================================
+
+    def PlotLandMaskLines_V1(self, axis, Pairs, orientation="vertical", **kwargs):
+        """Draw simple vertical/horizontal lines at region boundaries."""
+        for Start, End in Pairs:
+            if orientation == "vertical":
+                axis.axvline(Start, **kwargs)
+                axis.axvline(End, **kwargs)
+            elif orientation == "horizontal":
+                axis.axhline(Start, **kwargs)
+                axis.axhline(End, **kwargs)
+                
+    def PlotLandMaskLines_V2(self, axis, Pairs, orientation="longitude", side="min", **kwargs):
+        """Draw short boundary markers touching plot edges."""
+        xmin, xmax = axis.get_xlim()
+        ymin, ymax = axis.get_ylim()
+    
+        for Start, End in Pairs:
+            if orientation == "longitude":
+                y = ymin if side == "min" else ymax
+                axis.plot([Start, End], [y, y], solid_capstyle="butt", **kwargs)
+    
+            elif orientation == "latitude":
+                x = xmin if side == "min" else xmax
+                axis.plot([x, x], [Start, End], solid_capstyle="butt", **kwargs)
+
+    def PlotLandMask_Test(self):
+        fig, axis = plt.subplots(figsize=(8, 6))
+        self.lm.plot(ax=axis, vmin=0, vmax=1, cmap="Greens")
+
+        # Longitudinal and latitudinal region lines
+        self.PlotLandMaskLines_V1(axis, self.LongitudePairs, orientation="vertical", color='gray', alpha=0.5)
+        self.PlotLandMaskLines_V1(axis, self.LatitudePairs, orientation="horizontal", color='gray', alpha=0.5)
+
+        # Edge highlighting
+        self.PlotLandMaskLines_V2(axis, self.LongitudePairs, orientation="longitude", color='red', linewidth=6)
+        self.PlotLandMaskLines_V2(axis, self.LatitudePairs, orientation="latitude", color='blue', linewidth=6)
+
+    # ============================================================
+    # Applicable Plotting
+    # ============================================================
+    
+    def PlotLandMaskLines_V3(self, axis, Pairs, orientation="longitude", **kwargs):
+        """
+        Always plot boundary markers along the x-axis.
+        - For longitude regions: draw horizontal boundary lines at ymin or ymax.
+        - For latitude regions: draw vertical boundary lines at xmin or xmax.
+        """
+        ymin, ymax = axis.get_ylim()
+    
+        for Start, End in Pairs:
+            axis.plot([Start, End], [ymin, ymin], **kwargs)
+        
+    def PlotLandMaskLines_V3(self, axis, Pairs, orientation="longitude", **kwargs):
+        """
+        Draw landmask boundary lines *below* the x-axis spine,
+        visible but not interfering with plotted data.
+        """
+    
+        # Slight offset *below* the x-axis
+        y_offset = -0.015   # adjust (−0.01 to −0.03 works well)
+    
+        # Allow drawing outside axes since y < 0
+        kwargs.setdefault("clip_on", False)
+        kwargs.setdefault("zorder", 50)
+    
+        xmin, xmax = axis.get_xlim()
+    
+        for Start, End in Pairs:
+    
+            # Convert lon/lat → axis x coords (0..1)
+            x0 = (Start - xmin) / (xmax - xmin)
+            x1 = (End   - xmin) / (xmax - xmin)
+    
+            axis.plot(
+                [x0, x1],
+                [y_offset, y_offset],           # below axis spine
+                transform=axis.transAxes,
+                **kwargs
+            )
+
+    def PlotLandMask(self, axis,coordType,linewidth=3):
+        if coordType.lower() == "x":
+            self.PlotLandMaskLines_V3(axis, self.LongitudePairs, orientation="longitude", color='mediumseagreen', linewidth=linewidth, alpha=0.85, zorder=50)
+        elif coordType.lower() == "y":
+            self.PlotLandMaskLines_V3(axis, self.LatitudePairs, orientation="latitude", color='mediumseagreen', linewidth=linewidth, alpha=0.85, zorder=50)
+    
+    def ApplyPlotLandMask(self, fig, coordType, plotType):
+        axes = fig.get_axes()
+        for i, axis in enumerate(axes): 
+            if plotType == "contourf":
+                # Apply only to actual data axes (skip colorbars)
+                if i % 2 == 0:
+                    self.PlotLandMask(axis, coordType=coordType, linewidth=5)
+            
+            elif plotType == "line":
+                # Apply to ALL axes (assuming line plots have no colorbars)
+                self.PlotLandMask(axis, coordType=coordType, linewidth=5)
+
+# #EXAMPLE LOADING
+# sys.path.append(os.path.join(DirectoryManager.mainCodeDirectory,"DataAnalysis","MPAS_Model_Data"))
+# from CLASSES_PlottingModelData import RadarPlotting_Class, LandMaskPlotting_Class
+# LandMaskPlotting = LandMaskPlotting_Class(ModelData)
+# LandMaskPlotting.PlotLandMask_Test()
 
 
 # In[ ]:
