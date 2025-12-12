@@ -259,7 +259,7 @@ def convert_gif_to_mp4(input_file, output_file, fps,speed,bitrate='750k'):
 
 
 
-# In[9]:
+# In[1]:
 
 
 #USEFUL VERTICAL PROFILE PLOTTING FUNCTIONS
@@ -285,7 +285,7 @@ class RoundedScalarFormatter(ScalarFormatter):
         self.format = f"%.{self.decimals}f"
 
 
-def apply_scientific_notation(axes, use_math_text=True, power_limits=(-1, 1), decimals=2, scientific=True):
+def apply_scientific_notation(axes, dim='x', use_math_text=True, power_limits=(-1, 1), decimals=2, scientific=True):
     """
     Apply scientific notation with mantissas rounded to a fixed number of decimals.
     """
@@ -296,7 +296,10 @@ def apply_scientific_notation(axes, use_math_text=True, power_limits=(-1, 1), de
             powerlimits=power_limits,
             scientific=scientific
         )
-        axis.xaxis.set_major_formatter(formatter)
+        if dim == 'x':
+            axis.xaxis.set_major_formatter(formatter)
+        elif dim == 'y':
+            axis.yaxis.set_major_formatter(formatter)
 
 def apply_scientific_notation_colorbar(cbars):
     from matplotlib.ticker import ScalarFormatter
@@ -400,7 +403,8 @@ def SetEvenTicks(axes, dim="x", n_ticks=4, decimals=1, pad_frac=0.05):
             ax.set_xticks(ticks_rounded)
         else:
             ax.set_yticks(ticks_rounded)
-            
+
+
 # In[3]:
 
 
