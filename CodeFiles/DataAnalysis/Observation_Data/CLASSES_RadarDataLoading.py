@@ -162,7 +162,7 @@ class RadarData_MRMS_Class:
 
     
         #Loading Model Data
-        modelRadarData_NSSL = ModelData.GetDataTimestep_diag(t)["refl10cm_1km"]
+        modelRadarData_NSSL = ModelData.GetDataTimestep_diag(t)["refl10cm_1km"] #can be moved to __init__ and called into InterpolateRadarData
         
         #Loading Observational Radar
         RadarData_MRMS = RadarData_MRMS_Class(ModelData,

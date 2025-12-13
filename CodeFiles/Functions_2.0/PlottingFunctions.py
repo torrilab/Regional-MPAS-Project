@@ -583,46 +583,46 @@ def MatchAxisLimits(axes, dim='x'):
 # In[3]:
 
 
-## Converts all figures to PDF
-######################################################################################################################################################
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from PIL import Image
-import os
+# ## Converts all figures to PDF
+# ######################################################################################################################################################
+# from reportlab.lib.pagesizes import letter
+# from reportlab.pdfgen import canvas
+# from PIL import Image
+# import os
 
-def jpg_to_pdf(input_folder, output_pdf):
-    # Get a list of all JPG files in the input folder
-    jpg_files = [file for file in os.listdir(input_folder) if file.endswith('.jpg')]
-    jpg_files = ['domain_config.jpg','convergence.jpg','verticalu.jpg',
-                 'verticaltheta.jpg','verticalprspert.jpg','verticaltheta.jpg',
-                 'verticalwatervapor.jpg','horizontalw-u.jpg'] #***
+# def jpg_to_pdf(input_folder, output_pdf):
+#     # Get a list of all JPG files in the input folder
+#     jpg_files = [file for file in os.listdir(input_folder) if file.endswith('.jpg')]
+#     jpg_files = ['domain_config.jpg','convergence.jpg','verticalu.jpg',
+#                  'verticaltheta.jpg','verticalprspert.jpg','verticaltheta.jpg',
+#                  'verticalwatervapor.jpg','horizontalw-u.jpg'] #***
     
-    # Create a PDF canvas
-    c = canvas.Canvas(output_pdf, pagesize=letter)
+#     # Create a PDF canvas
+#     c = canvas.Canvas(output_pdf, pagesize=letter)
 
-    # Loop through each JPG file and add it to the PDF
-    for jpg_file in jpg_files:
-        # Open the JPG image using PIL
-        img = Image.open(os.path.join(input_folder, jpg_file))
+#     # Loop through each JPG file and add it to the PDF
+#     for jpg_file in jpg_files:
+#         # Open the JPG image using PIL
+#         img = Image.open(os.path.join(input_folder, jpg_file))
 
-        # Calculate the aspect ratio to maintain image proportions
-        width, height = img.size
-        aspect_ratio = width / height
+#         # Calculate the aspect ratio to maintain image proportions
+#         width, height = img.size
+#         aspect_ratio = width / height
 
-        # Add the image to the PDF
-        c.setPageSize((width, height))
-        c.drawInlineImage(os.path.join(input_folder, jpg_file), 0, 0, width=width, height=height)
+#         # Add the image to the PDF
+#         c.setPageSize((width, height))
+#         c.drawInlineImage(os.path.join(input_folder, jpg_file), 0, 0, width=width, height=height)
 
-        # Add a new page for the next image
-        c.showPage()
+#         # Add a new page for the next image
+#         c.showPage()
 
-    # Save the PDF
-    c.save()
+#     # Save the PDF
+#     c.save()
 
-# # Example usage:
-# input_folder = folder_path
-# output_pdf = folder_path + f'figures_062217_{res}.pdf'
-# jpg_to_pdf(input_folder, output_pdf)
+# # # Example usage:
+# # input_folder = folder_path
+# # output_pdf = folder_path + f'figures_062217_{res}.pdf'
+# # jpg_to_pdf(input_folder, output_pdf)
 
 
 # In[2]:
