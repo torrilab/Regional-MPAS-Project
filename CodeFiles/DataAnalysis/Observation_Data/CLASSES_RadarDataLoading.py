@@ -155,7 +155,9 @@ class RadarData_MRMS_Class:
                 elif ModelData.case == "DIURNAL":
                     dateString = '2022-06-21_2022-06-24'
             elif ModelData.region == "Hawaii":
-                if ModelData.case == "TRADES":
+                if ModelData.case == "WET":
+                    dateString = "2021-12-05_2021-12-08"
+                elif ModelData.case == "TRADES":
                     dateString = "2022-08-07_2022-08-10"
         else:
             dateString = f"{ModelData.simulationDates[0]}_{ModelData.simulationDates[-1]}"
