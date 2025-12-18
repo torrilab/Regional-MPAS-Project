@@ -410,6 +410,14 @@ class DataOperator_Class:
         return variableSubset, lat, lon
 
     @staticmethod
+    def GetVariable_Subset2(ModelData, variable):
+        [latCenter,lonCenter] = DataOperator_Class.LatLonBoundingBox_Center(region=ModelData.region)
+        [latBounds, lonBounds] = DataOperator_Class.LatLonBoundingBox_Calculation(latCenter, lonCenter, radius_km=500)
+        variableSubset, lat, lon = DataOperator_Class.LatLonBoundingBox_Subset(variable,latBounds, lonBounds)
+
+        return variableSubset, lat, lon
+
+    @staticmethod
     def GetData_Subset(ModelData,t):  
         data = ModelData.GetDataTimestep(t,printout=False)
         data_diag = ModelData.GetDataTimestep_diag(t,printout=False)
