@@ -24,6 +24,8 @@ class StructuredModelData_Class:
         # SIMULATION INFO
         (self.region, self.case, self.mpType, self.spinup_hours) = RunType
 
+        (self.z_levels_filePath,self.zf,self.zc) = self.GetZLevels()
+
         # === DATA DIRECTORIES ===
         (self.dataDirectory,
          self.fileList,
@@ -155,6 +157,12 @@ class StructuredModelData_Class:
             self.Nzf=len(self.nVertLevelsP1)
             
         self.coordinateList = ["latitude", "longitude", "nVertLevels", "nVertLevelsP1"]
+
+    def GetZLevels(self):
+        z_levels_filePath = "/glade/derecho/scratch/aroseman/Projects/Regional-MPAS-Project/MPAS_Atmosphere_8.3.1/TRACER/WET/MPAS-Model_8.3.1_56nz/zeta_30km_57levels.txt"
+        zf = np.loadtxt(z_levels_filePath)/1e3
+        zc = 0.5 * (zf[:-1] + zf[1:])
+        return z_levels_filePath,zf,zc
 
     def GetUnits(self, data):
         """
