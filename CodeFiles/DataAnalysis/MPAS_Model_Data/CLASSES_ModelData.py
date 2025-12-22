@@ -24,8 +24,6 @@ class StructuredModelData_Class:
         # SIMULATION INFO
         (self.region, self.case, self.mpType, self.spinup_hours) = RunType
 
-        (self.z_levels_filePath,self.zf,self.zc) = self.GetZLevels()
-
         # === DATA DIRECTORIES ===
         (self.dataDirectory,
          self.fileList,
@@ -54,6 +52,7 @@ class StructuredModelData_Class:
 
         # === COORDINATES ===
         self.GetCoordinates()
+        (self.z_levels_filePath,self.zf,self.zc) = self.GetZLevels()
 
         # === COORDINATES ===
         self.unitsDictionary = self.GetUnits(self.GetDataTimestep(t=0))
@@ -143,6 +142,9 @@ class StructuredModelData_Class:
             
         return dataVariables, dataVariables_diag
 
+    # ============================================================
+    # Coordinates
+    # ============================================================
     def GetCoordinates(self):
         first_file = self.fileList[0]
         with xr.open_dataset(first_file, engine="netcdf4") as ds:
@@ -157,13 +159,80 @@ class StructuredModelData_Class:
             self.Nzf=len(self.nVertLevelsP1)
             
         self.coordinateList = ["latitude", "longitude", "nVertLevels", "nVertLevelsP1"]
-
+        
     def GetZLevels(self):
         z_levels_filePath = "/glade/derecho/scratch/aroseman/Projects/Regional-MPAS-Project/MPAS_Atmosphere_8.3.1/TRACER/WET/MPAS-Model_8.3.1_56nz/zeta_30km_57levels.txt"
         zf = np.loadtxt(z_levels_filePath)/1e3
         zc = 0.5 * (zf[:-1] + zf[1:])
         return z_levels_filePath,zf,zc
 
+    def GetZGrids(self):
+        zGrid_f = self.initData.zgrid
+        zGrid_c = 0.5 * (
+            zGrid_f.isel(nVertLevelsP1=slice(0, -1)) +
+            zGrid_f.isel(nVertLevelsP1=slice(1, None))
+        ); zGrid_c = zGrid_c.rename({"nVertLevelsP1": "nVertLevels"})
+    
+        return zGrid_f,zGrid_c
+
+    def GetZTarget(self,zGrid):
+        
+        zGrid0 = zGrid.isel(nVertLevelsP1=0)
+        
+        idx = zGrid0.argmin(dim=("latitude", "longitude"))
+        
+        zTarget = zGrid.isel(
+            latitude=idx["latitude"],
+            longitude=idx["longitude"]
+        )
+        return zTarget.data
+    def InterpolateVertical(self,variableSubset,zGrid_f,zGrid_c,zTarget):
+        """
+        Column-wise vertical interpolation to fixed height levels.
+        """
+    
+        def interpColumn(varCol, zCol, zTarget):
+            valid = np.isfinite(varCol) & np.isfinite(zCol)
+            if valid.sum() < 2:
+                return np.full(len(zTarget), np.nan)
+    
+            return np.interp(
+                zTarget,
+                zCol[valid],
+                varCol[valid],
+                left=np.nan,
+                right=np.nan
+            )
+    
+        if "nVertLevelsP1" in variableSubset.dims:
+            zGrid = zGrid_f
+            zDim = "nVertLevelsP1"
+        elif "nVertLevels" in variableSubset.dims:
+            zGrid = zGrid_c
+            zDim = "nVertLevels"
+            
+    
+        varInterp = xr.apply_ufunc(
+            interpColumn,
+            variableSubset,
+            zGrid,
+            input_core_dims=[[zDim], [zDim]],
+            output_core_dims=[["z"]],
+            vectorize=True,
+            kwargs={"zTarget": zTarget},
+            output_dtypes=[variableSubset.dtype],
+        )
+    
+        varInterp = varInterp.assign_coords(
+            z=("z", zTarget),
+            latitude=variableSubset.latitude,
+            longitude=variableSubset.longitude,
+        )
+    
+        varInterp.name = variableSubset.name
+        varInterp = varInterp.rename({"z": zDim})
+        return varInterp
+    
     def GetUnits(self, data):
         """
         Return a dictionary {varName: units} for all variables in an xarray Dataset.
