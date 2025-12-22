@@ -18,7 +18,7 @@ export PYTHONUNBUFFERED=TRUE
 mkdir -p job_out
 
 # --- Convert and Run ---
-NOTEBOOK="RadarAreaAverages.ipynb"
+NOTEBOOK="SliceAverages.ipynb"
 SCRIPT="${NOTEBOOK%.ipynb}.py"
 
 jupyter nbconvert --to script "$NOTEBOOK"
