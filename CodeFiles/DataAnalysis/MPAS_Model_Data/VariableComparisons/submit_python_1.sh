@@ -5,7 +5,7 @@
 #PBS -l job_priority=economy
 #PBS -l walltime=01:30:00
 #PBS -l select=1:ncpus=1:mem=20GB
-#PBS -M air673@hawaii.edu
+#PBS -M supercomputerjobs@gmail.com
 #PBS -m bea
 
 cd $PBS_O_WORKDIR
