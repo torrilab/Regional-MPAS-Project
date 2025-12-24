@@ -5,13 +5,13 @@
 #PBS -J 1-20:1
 #PBS -l walltime=00:15:00
 #PBS -l select=1:ncpus=1:mem=10GB
-#PBS -M supercomputerjobs@gmail.com
+#PBS -M air673@hawaii.edu
 #PBS -m bea
 
 cd $PBS_O_WORKDIR
 
 # --- Setup Variables ---
-NOTEBOOK="AreaAverages.ipynb"
+NOTEBOOK="ComparingCFADs_MRMS.ipynb"
 SCRIPT="${NOTEBOOK%.ipynb}.py"
 JOB_DIR="job_out/${SCRIPT%.py}"
 

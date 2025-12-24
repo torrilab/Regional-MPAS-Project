@@ -11,7 +11,7 @@
 cd $PBS_O_WORKDIR
 
 # --- Setup Variables ---
-NOTEBOOK="AreaAverages.ipynb"
+NOTEBOOK="RadarAreaAverages.ipynb"
 SCRIPT="${NOTEBOOK%.ipynb}.py"
 JOB_DIR="job_out/${SCRIPT%.py}"
 

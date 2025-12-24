@@ -15,8 +15,8 @@ import glob
 from datetime import datetime, timedelta
 import xarray as xr
 
-class StructuredModelData_Class:
-    def __init__(self, mainDirectory, scratchDirectory, RunType):#, SimulationTime):
+class StructuredModelData_Class():
+    def __init__(self, mainDirectory, scratchDirectory, RunType, printSummary=True):#, SimulationTime):
         # DIRECTORIES
         self.mainDirectory = mainDirectory
         self.scratchDirectory = scratchDirectory
@@ -60,7 +60,8 @@ class StructuredModelData_Class:
         self.unitsDictionary_static = self.GetUnits(self.staticData)
 
         # === SUMMARY ===
-        self.Summary()
+        if printSummary:
+            self.Summary()
 
     # ============================================================
     # Data Loading and Paths
@@ -174,42 +175,73 @@ class StructuredModelData_Class:
         ); zGrid_c = zGrid_c.rename({"nVertLevelsP1": "nVertLevels"})
     
         return zGrid_f,zGrid_c
-
-    def GetZTarget(self,zGrid):
+    
+    def GetZTarget(self, zGrid_f,zGrid_c):
+        """
+        Return target vertical coordinates for both interface and center grids.
+        """
+    
+        # -------------------------------
+        # Interface grid (nVertLevelsP1)
+        # -------------------------------
+        zGrid0_f = zGrid_f.isel(nVertLevelsP1=0)
+    
+        idx_f = zGrid0_f.argmin(dim=("latitude", "longitude"))
+    
+        zTarget_f = zGrid_f.isel(
+            latitude=idx_f["latitude"],
+            longitude=idx_f["longitude"]
+        ).data
+    
+        # -------------------------------
+        # Center grid (nVertLevels)
+        # -------------------------------
+        zGrid0_c = zGrid_c.isel(nVertLevels=0)
+    
+        idx_c = zGrid0_c.argmin(dim=("latitude", "longitude"))
+    
+        zTarget_c = zGrid_c.isel(
+            latitude=idx_c["latitude"],
+            longitude=idx_c["longitude"]
+        ).data
+    
+        return zTarget_f, zTarget_c
         
-        zGrid0 = zGrid.isel(nVertLevelsP1=0)
-        
-        idx = zGrid0.argmin(dim=("latitude", "longitude"))
-        
-        zTarget = zGrid.isel(
-            latitude=idx["latitude"],
-            longitude=idx["longitude"]
-        )
-        return zTarget.data
-    def InterpolateVertical(self,variableSubset,zGrid_f,zGrid_c,zTarget):
+    def InterpolateVertical(self,variableSubset,zGrid_f,zGrid_c,zTarget_f,zTarget_c):
         """
         Column-wise vertical interpolation to fixed height levels.
         """
     
-        def interpColumn(varCol, zCol, zTarget):
-            valid = np.isfinite(varCol) & np.isfinite(zCol)
-            if valid.sum() < 2:
-                return np.full(len(zTarget), np.nan)
+        # def interpColumn(varCol, zCol, zTarget):
+        #     valid = np.isfinite(varCol) & np.isfinite(zCol)
+        #     if valid.sum() < 2:
+        #         return np.full(len(zTarget), np.nan)
     
+        #     return np.interp(
+        #         zTarget,
+        #         zCol[valid],
+        #         varCol[valid],
+        #         left=np.nan,
+        #         right=np.nan
+        #     )
+
+        def interpColumn(varCol, zCol, zTarget):
             return np.interp(
                 zTarget,
-                zCol[valid],
-                varCol[valid],
+                zCol,
+                varCol,
                 left=np.nan,
                 right=np.nan
             )
-    
+
         if "nVertLevelsP1" in variableSubset.dims:
             zGrid = zGrid_f
             zDim = "nVertLevelsP1"
+            zTarget = zTarget_f
         elif "nVertLevels" in variableSubset.dims:
             zGrid = zGrid_c
             zDim = "nVertLevels"
+            zTarget = zTarget_c
             
     
         varInterp = xr.apply_ufunc(
@@ -232,7 +264,7 @@ class StructuredModelData_Class:
         varInterp.name = variableSubset.name
         varInterp = varInterp.rename({"z": zDim})
         return varInterp
-    
+        
     def GetUnits(self, data):
         """
         Return a dictionary {varName: units} for all variables in an xarray Dataset.
@@ -501,12 +533,16 @@ class DataOperator_Class:
     
         [latCenter,lonCenter] = DataOperator_Class.LatLonBoundingBox_Center(region=ModelData.region)
         [latBounds, lonBounds] = DataOperator_Class.LatLonBoundingBox_Calculation(latCenter, lonCenter, radius_km=500)
+        
         dataSubset, lat, lon = DataOperator_Class.LatLonBoundingBox_Subset(data,latBounds, lonBounds)
         dataSubset_diag, _, _ = DataOperator_Class.LatLonBoundingBox_Subset(data_diag,latBounds, lonBounds)
         dataSubset_static, _, _ = DataOperator_Class.LatLonBoundingBox_Subset(ModelData.staticData,latBounds, lonBounds)
+
+        [zGrid_f,zGrid_c] = ModelData.GetZGrids()
+        zGrid_f, _, _ = DataOperator_Class.LatLonBoundingBox_Subset(zGrid_f,latBounds, lonBounds)
+        zGrid_c, _, _ = DataOperator_Class.LatLonBoundingBox_Subset(zGrid_c,latBounds, lonBounds)
     
-        # Lon, Lat = np.meshgrid(lon, lat) #not actually needed to plot
-        return dataSubset, dataSubset_diag, dataSubset_static, lat, lon, data, data_diag
+        return dataSubset,dataSubset_diag,dataSubset_static, lat,lon,zGrid_f,zGrid_c, data,data_diag
 
     @staticmethod
     def GetOutputFilePath(ModelData, DirectoryManager, outputDirectory, fileName):
