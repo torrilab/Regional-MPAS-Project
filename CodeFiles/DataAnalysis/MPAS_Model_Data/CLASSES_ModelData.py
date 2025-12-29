@@ -263,6 +263,7 @@ class StructuredModelData_Class():
     
         varInterp.name = variableSubset.name
         varInterp = varInterp.rename({"z": zDim})
+        varInterp = varInterp.transpose(zDim, "latitude", "longitude")
         return varInterp
         
     def GetUnits(self, data):

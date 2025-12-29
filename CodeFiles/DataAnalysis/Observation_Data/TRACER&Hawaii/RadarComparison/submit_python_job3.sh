@@ -11,7 +11,7 @@
 cd $PBS_O_WORKDIR
 
 # --- Setup Variables ---
-NOTEBOOK="FractionSkillScore_3D.ipynb"
+NOTEBOOK="FractionSkillScore_3D_MRMS.ipynb"
 SCRIPT="${NOTEBOOK%.ipynb}.py"
 JOB_DIR="job_out/${SCRIPT%.py}"
 

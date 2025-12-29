@@ -11,7 +11,7 @@
 cd $PBS_O_WORKDIR
 
 # --- Setup Variables ---
-NOTEBOOK="FractionSkillScore_3D.ipynb"
+NOTEBOOK="FractionSkillScore_3D_PRECIP.ipynb"
 SCRIPT="${NOTEBOOK%.ipynb}.py"
 JOB_DIR="job_out/${SCRIPT%.py}"
 
@@ -23,13 +23,15 @@ echo "PBS Job Id is ${PBS_JOBID}"
 echo "PBS job array index value is ${PBS_ARRAY_INDEX}"
 
 # --- Environment Setup ---
-module load conda
-conda activate my_environment
+#module load conda
+#conda activate npl
 export HDF5_USE_FILE_LOCKING=FALSE
 export PYTHONUNBUFFERED=TRUE
 
 # --- Convert and Run ---
 jupyter nbconvert --to script "$NOTEBOOK"
+module load conda
+conda activate my_environment
 python -u "$SCRIPT" > "${JOB_DIR}/${SCRIPT%.py}-${PBS_JOBID}.out" 2>&1
 
 # --- Move PBS .o and .e files into the job directory ---
