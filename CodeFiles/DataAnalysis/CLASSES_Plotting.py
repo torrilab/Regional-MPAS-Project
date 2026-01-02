@@ -198,9 +198,25 @@ import matplotlib.image as mpimg
 import matplotlib.gridspec as gridspec
 
 class ConsolidateFigures_CLASS:
+
+    @staticmethod
+    def GetCaseList():
+        caseList = [
+            ("TRACER", "WET",      0),
+            ("TRACER", "DIURNAL", -5),
+        
+            ("PRECIP", "WET",     12),
+            ("PRECIP", "DIURNAL", 12),
+        
+            ("Hawaii", "WET",     12),
+            ("Hawaii", "TRADES",  24),
+        ]
+
+        return caseList
+
     @staticmethod
     def AssembleImageGrid(
-        imageFiles,
+        filePaths,
         nrows,
         ncols,
         figsize=(8, 8),
@@ -223,7 +239,7 @@ class ConsolidateFigures_CLASS:
             hspace=hspace
         )
     
-        for index, imageFile in enumerate(imageFiles):
+        for index, imageFile in enumerate(filePaths):
             if index >= nrows * ncols:
                 break
     
@@ -233,12 +249,33 @@ class ConsolidateFigures_CLASS:
             ax.axis("off")
     
         return fig
+
+    @staticmethod
+    def SaveCombinedFigure(fig, saveDirectory,fileName, dpi=600, extension="jpg"):
+        """
+        Saves a matplotlib Figure to a subdirectory named after the model configuration.
+        """
+        # --- File path ---
+        outputFile = os.path.join(
+            saveDirectory,
+            f"{fileName}.{extension}"
+        )
     
+        # --- Save and close ---
+        fig.savefig(outputFile, dpi=dpi, bbox_inches="tight")
+        plt.close(fig)
+        print(f"Saved figure to: {outputFile}")
+
+
+# #EXAMPLE IMPORTING
+# sys.path.append(os.path.join(DirectoryManager.mainCodeDirectory,"DataAnalysis"))
+# from CLASSES_Plotting import ContourPlotting_Class
+
 # #Example Usage
 # ConsolidateFigures = ConsolidateFigures_CLASS
-# imageFiles = ["1.png", "2.png", "3.png", "4.png"]
+# filePaths = ["1.png", "2.png", "3.png", "4.png"]
 
-# fig = ConsolidateFigures_CLASS.AssembleImageGrid(imageFiles=imageFiles,
+# fig = ConsolidateFigures_CLASS.AssembleImageGrid(filePaths=filePaths,
 #                                                  nrows=2,ncols=2,
 #                                                  figsize=(6, 4),
 #                                                  wspace=0.02,hspace=0.02,
