@@ -185,3 +185,62 @@ class ContourPlotting_Class:
 #                                                     multiplier = multiplier)
 # colorBar = ContourPlotting_Class.AddSharedColorbar(fig, contourPlot, colorbarTitle = colorbarTitle)
 
+
+# In[1]:
+
+
+# ============================================================
+# ConsolidateFigures_CLASS 
+# ============================================================
+
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import matplotlib.gridspec as gridspec
+
+class ConsolidateFigures_CLASS:
+    @staticmethod
+    def AssembleImageGrid(
+        imageFiles,
+        nrows,
+        ncols,
+        figsize=(8, 8),
+        wspace=0.03,
+        hspace=0.03,
+        dpi=300,
+    ):
+        """
+        Assemble a grid of pre-rendered images using GridSpec.¯
+        """
+    
+        fig = plt.figure(figsize=figsize,
+                         dpi=dpi)
+    
+        gs = gridspec.GridSpec(
+            nrows,
+            ncols,
+            figure=fig,
+            wspace=wspace,
+            hspace=hspace
+        )
+    
+        for index, imageFile in enumerate(imageFiles):
+            if index >= nrows * ncols:
+                break
+    
+            ax = fig.add_subplot(gs[index])
+            img = mpimg.imread(imageFile)
+            ax.imshow(img, aspect="auto")
+            ax.axis("off")
+    
+        return fig
+    
+# #Example Usage
+# ConsolidateFigures = ConsolidateFigures_CLASS
+# imageFiles = ["1.png", "2.png", "3.png", "4.png"]
+
+# fig = ConsolidateFigures_CLASS.AssembleImageGrid(imageFiles=imageFiles,
+#                                                  nrows=2,ncols=2,
+#                                                  figsize=(6, 4),
+#                                                  wspace=0.02,hspace=0.02,
+#                                                  dpi=300)
+
