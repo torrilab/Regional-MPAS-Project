@@ -17,6 +17,7 @@ import pandas as pd  # <-- MISSING
 import cartopy.crs as ccrs  # <-- MISSING
 import cartopy.feature as cfeature  # <-- MISSING
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
+import cartopy.mpl.ticker as cticker
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 class RadarPlotting_Class:
@@ -207,44 +208,51 @@ class RadarPlotting_Class:
         axis.tick_params(axis="both", which="major", labelsize=tick_fontsize)
 
     @staticmethod
-    def PlotReflectivity(axis, lat,lon,radarData_t,
+    def PlotReflectivity(axis, lat, lon, radarData_t,
                          dataName, timeTitle,
-                         clim = (None,None)):
-        """
-        Plots radar data given lat,lon, and radarData_t (a xarray NETCDF object)
-        """
+                         clim=(None, None),
+                         zorder=20,
+                         numLatLonDecimals=2):
     
-        num_levels=19
-        if clim != (None,None):
-            levels = multiplier*np.linspace(clim[0],clim[1],num_levels)
+        num_levels = 19
+        if clim != (None, None):
+            levels = multiplier * np.linspace(clim[0], clim[1], num_levels)
         else:
-            levels=num_levels
+            levels = num_levels
     
         cmap, norm, levels, ticks = RadarPlotting_Class.GetReflectivityColormap()
         radarData_t = radarData_t.where(radarData_t > 0)
-        
+    
         contourPlot = axis.contourf(
             lon, lat, radarData_t,
             levels=levels,
             cmap=cmap,
             norm=norm,
             transform=ccrs.PlateCarree(),
-            extend='both'
-        ) 
-        
-        # Add map features
+            extend="both",
+            zorder=zorder
+        )
+    
         axis.add_feature(RadarPlotting_Class.COAST, linewidth=1)
         axis.add_feature(RadarPlotting_Class.BORDERS, linewidth=0.8)
         axis.add_feature(RadarPlotting_Class.STATES, linewidth=0.5)
         axis.add_feature(RadarPlotting_Class.LAND, facecolor="lightgray", alpha=0.3)
         axis.add_feature(RadarPlotting_Class.LAKES, edgecolor="k", facecolor="none")
-        
-        #TICKS
-        RadarPlotting_Class.FormatGeoTicks(axis, lon,lat)
-        
-        #LABELS
+    
+        # TICKS
+        RadarPlotting_Class.FormatGeoTicks(axis, lon, lat)
+    
+        # Force lon/lat tick labels to 2 decimals
+        axis.xaxis.set_major_formatter(
+            cticker.LongitudeFormatter(number_format=f".{numLatLonDecimals}f")
+        )
+        axis.yaxis.set_major_formatter(
+            cticker.LatitudeFormatter(number_format=f".{numLatLonDecimals}f")
+        )
+    
         title = f"{dataName} – {timeTitle}"
-        axis.set_title(title, fontsize=10);
+        axis.set_title(title, fontsize=10)
+    
         return contourPlot
 
     @staticmethod
