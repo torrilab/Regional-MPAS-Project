@@ -4,6 +4,12 @@
 # In[1]:
 
 
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
 # ============================================================
 # RadarPlotting_Class 
 # ============================================================
@@ -212,7 +218,8 @@ class RadarPlotting_Class:
                          dataName, timeTitle,
                          clim=(None, None),
                          zorder=20,
-                         numLatLonDecimals=2):
+                         numLatLonDecimals=2,
+                         showLat=True,tickFont=12):
     
         num_levels = 19
         if clim != (None, None):
@@ -238,18 +245,36 @@ class RadarPlotting_Class:
         axis.add_feature(RadarPlotting_Class.STATES, linewidth=0.5)
         axis.add_feature(RadarPlotting_Class.LAND, facecolor="lightgray", alpha=0.3)
         axis.add_feature(RadarPlotting_Class.LAKES, edgecolor="k", facecolor="none")
+        
+        # --- TICKS AND GRIDLINES ---
+        # RadarPlotting_Class.FormatGeoTicks(axis, lon, lat) #old
     
-        # TICKS
-        RadarPlotting_Class.FormatGeoTicks(axis, lon, lat)
-    
-        # Force lon/lat tick labels to 2 decimals
-        axis.xaxis.set_major_formatter(
-            cticker.LongitudeFormatter(number_format=f".{numLatLonDecimals}f")
-        )
-        axis.yaxis.set_major_formatter(
-            cticker.LatitudeFormatter(number_format=f".{numLatLonDecimals}f")
-        )
-    
+        # # Force lon/lat tick labels to 2 decimals #old
+        # axis.xaxis.set_major_formatter(
+        #     cticker.LongitudeFormatter(number_format=f".{numLatLonDecimals}f")
+        # )
+        # axis.yaxis.set_major_formatter(
+        #     cticker.LatitudeFormatter(number_format=f".{numLatLonDecimals}f")
+        # )
+        
+        # 1. Initialize the gridlines
+        gl = axis.gridlines(draw_labels=True, color='gray', alpha=0.5, linestyle='--', zorder=zorder+1)
+        
+        # 2. Control which labels appear (mimicking your previous logic)
+        gl.top_labels = False
+        gl.right_labels = False
+        gl.left_labels = showLat
+        gl.bottom_labels = True
+
+        # 3. Apply your font settings
+        gl.xlabel_style = {'size': tickFont}
+        gl.ylabel_style = {'size': tickFont}
+
+        # # 4. Force specific decimal formatting using the formatters you already have
+        # gl.xformatter = cticker.LongitudeFormatter(number_format=f".{numLatLonDecimals}f")
+        # gl.yformatter = cticker.LatitudeFormatter(number_format=f".{numLatLonDecimals}f")
+
+        # TITLE
         title = f"{dataName} – {timeTitle}"
         axis.set_title(title, fontsize=10)
     
