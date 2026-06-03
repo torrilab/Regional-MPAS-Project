@@ -301,11 +301,24 @@ def apply_scientific_notation(axes, dim='x', use_math_text=True, power_limits=(-
         elif dim == 'y':
             axis.yaxis.set_major_formatter(formatter)
 
-def apply_scientific_notation_colorbar(cbars):
-    from matplotlib.ticker import ScalarFormatter
-    formatter = ScalarFormatter(useMathText=True)
-    formatter.set_powerlimits((-2, 2))  # Adjust the range for scientific notation
-    for cbar in cbars:  # These must be Colorbar instances
+# def apply_scientific_notation_colorbar(cbars):
+#     from matplotlib.ticker import ScalarFormatter
+#     formatter = ScalarFormatter(useMathText=True)
+#     formatter.set_powerlimits((-2, 2))  # Adjust the range for scientific notation
+#     for cbar in cbars:  # These must be Colorbar instances
+#         cbar.formatter = formatter
+#         cbar.update_ticks()
+
+def apply_scientific_notation_colorbar(cbars, 
+                                       use_math_text=True, 
+                                       power_limits=(-2, 2), decimals=2, scientific=True):
+    for cbar in cbars:
+        formatter = RoundedScalarFormatter(
+            decimals=decimals,
+            useMathText=use_math_text,
+            powerlimits=power_limits,
+            scientific=scientific
+        )
         cbar.formatter = formatter
         cbar.update_ticks()
 
